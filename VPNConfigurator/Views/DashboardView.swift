@@ -15,33 +15,28 @@ struct DashboardView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                hero
+            VStack(alignment: .leading, spacing: 32) {
+                header
                     .appearLift(0)
 
                 if controller.profiles.isEmpty {
                     emptyState
                         .appearLift(0.04)
                 } else {
-                    VStack(alignment: .leading, spacing: 14) {
-                        SectionHeading(title: "Connections", count: controller.profiles.count)
-
-                        GlassEffectContainer(spacing: 16) {
-                            LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                                ForEach(controller.profiles) { profile in
-                                    VPNCard(profile: profile)
-                                }
+                    GlassEffectContainer(spacing: 16) {
+                        LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
+                            ForEach(controller.profiles) { profile in
+                                VPNCard(profile: profile)
                             }
                         }
                     }
                     .appearLift(0.04)
                 }
             }
-            .padding(.horizontal, 34)
-            .padding(.top, 38)
+            .padding(.horizontal, 38)
+            .padding(.top, 34)
             .padding(.bottom, 44)
-            .frame(maxWidth: 1180, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollContentBackground(.hidden)
         .navigationTitle("Dashboard")
@@ -65,54 +60,35 @@ struct DashboardView: View {
         }
     }
 
-    // MARK: - Hero
+    // MARK: - Header
 
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Image("BifrostMark")
+    private var header: some View {
+        HStack(alignment: .center, spacing: 24) {
+            VStack(alignment: .leading, spacing: 2) {
+                Image("BifrostFullLogo")
                     .resizable()
-                    .scaledToFit()
-                    .frame(width: 25, height: 25)
+                    .scaledToFill()
+                    .frame(width: 354, height: 99)
+                    .clipped()
                     .accessibilityHidden(true)
 
-                Text("Bifrost")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Theme.Palette.textPrimary)
+                Text("Manage and connect to your private networks.")
+                    .font(.system(size: 12.5, weight: .regular))
+                    .foregroundStyle(Theme.Palette.textSecondary)
+                    .padding(.leading, 25)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Bifrost")
+            .accessibilityLabel("Bifrost. Manage and connect to your private networks.")
 
-            HStack(alignment: .bottom, spacing: 20) {
-                VStack(alignment: .leading, spacing: 9) {
-                    Text("Your private networks")
-                        .font(.heroTitle)
-                        .tracking(-0.4)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Theme.Palette.textPrimary, Theme.Palette.textPrimary.opacity(0.68)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+            Spacer(minLength: 24)
 
-                    HStack(spacing: 8) {
-                        StatusDot(state: aggregateState, size: 6)
-                        Text(summary)
-                            .font(.body13)
-                            .foregroundStyle(Theme.Palette.textSecondary)
-                    }
+            HStack(spacing: 18) {
+                if !controller.disconnectableProfiles.isEmpty {
+                    Button("Disconnect all") { controller.disconnectAll() }
+                        .buttonStyle(.quiet)
                 }
 
-                Spacer(minLength: 0)
-
-                GlassEffectContainer(spacing: 10) {
-                    HStack(spacing: 10) {
-                    if !controller.disconnectableProfiles.isEmpty {
-                        Button("Disconnect all") { controller.disconnectAll() }
-                            .buttonStyle(.quiet)
-                    }
-
+                HStack(spacing: 16) {
                     Menu {
                         Button("New profile", systemImage: "plus") {
                             showingNewProfile = true
@@ -124,28 +100,40 @@ struct DashboardView: View {
                         }
                     } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(width: 34, height: 34)
+                            .font(.system(size: 18, weight: .medium))
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
                     }
                     .menuIndicator(.hidden)
-                    .buttonStyle(.glassProminent)
-                    .buttonBorderShape(.circle)
-                    .tint(Theme.Palette.brand)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.Palette.textPrimary)
                     .help("Add or import a VPN profile")
 
                     Button(action: openSettings) {
                         Image(systemName: "gearshape")
-                            .font(.system(size: 13, weight: .medium))
-                            .frame(width: 34, height: 34)
+                            .font(.system(size: 17, weight: .medium))
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.glass)
-                    .buttonBorderShape(.circle)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.Palette.textPrimary)
                     .keyboardShortcut(",", modifiers: .command)
                     .help("Settings")
-                    }
                 }
-                .animation(Theme.Motion.state, value: controller.disconnectableProfiles.count)
+                .padding(.horizontal, 13)
+                .padding(.vertical, 8)
+                .glassEffect(
+                    .regular
+                        .tint(Theme.Palette.brand.opacity(0.16))
+                        .interactive(),
+                    in: Capsule()
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Theme.Palette.brandBright.opacity(0.14), lineWidth: 1)
+                )
             }
+            .animation(Theme.Motion.state, value: controller.disconnectableProfiles.count)
         }
     }
 
@@ -183,28 +171,6 @@ struct DashboardView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 62)
         .glassCard(interactive: false)
-    }
-
-    // MARK: - Copy
-
-    /// One line that stands in for the whole grid, matching the aggregate dot.
-    private var summary: String {
-        let count = controller.connectedProfiles.count
-        if controller.profiles.contains(where: { controller.state(for: $0) == .degraded }) {
-            return "Some VPN connection states could not be confirmed."
-        }
-        if count == 0, !controller.busyProfiles.isEmpty { return "Checking or changing VPN connections…" }
-        if count == 0 { return "No VPN connections are active." }
-        return "\(count) VPN connection\(count == 1 ? " is" : "s are") active."
-    }
-
-    private var aggregateState: ConnectionState {
-        let states = controller.profiles.map { controller.state(for: $0) }
-        if states.contains(.degraded) { return .degraded }
-        if states.contains(.connected) { return .connected }
-        if states.contains(where: \.isBusy) { return .connecting }
-        if states.contains(.failed) { return .failed }
-        return .disconnected
     }
 
     private func importFiles(_ result: Result<[URL], Error>) {

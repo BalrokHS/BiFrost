@@ -1,5 +1,46 @@
 import SwiftUI
 
+// MARK: - Brand
+
+/// A scalable, truly transparent wordmark assembled from the app's vector
+/// status glyph and native type. This stays crisp in compact chrome without
+/// depending on a raster image background.
+struct BifrostWordmark: View {
+    enum Style {
+        case monochrome
+        case color
+    }
+
+    let style: Style
+    var height: CGFloat = 32
+
+    var body: some View {
+        HStack(spacing: height * 0.22) {
+            if style == .monochrome {
+                Image("BifrostStatusGlyph")
+                    .resizable()
+                    .renderingMode(.template)
+                    .scaledToFit()
+                    .foregroundStyle(Theme.Palette.textPrimary)
+                    .frame(width: height * 1.55, height: height)
+            } else {
+                Image("BifrostMark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: height, height: height)
+            }
+
+            Text("Bifrost")
+                .font(.system(size: height * 0.72, weight: .bold, design: .rounded))
+                .tracking(-height * 0.012)
+                .foregroundStyle(Theme.Palette.textPrimary)
+        }
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Bifrost")
+    }
+}
+
 /// A restrained atmospheric canvas behind the glass. The light follows the
 /// connected profile palette, but stays dim enough for long working sessions.
 struct AmbientBackdrop: View {

@@ -14,7 +14,6 @@ struct AppSettingsView: View {
     @State private var inventory: EngineInventory?
     @State private var selection: SettingsDestination = .engines
     @State private var selectedEngine: VPNEngine = .openFortiVPN
-    @State private var search = ""
     @State private var lastRefresh = Date.now
 
     private enum SettingsDestination: String, CaseIterable, Identifiable {
@@ -32,13 +31,6 @@ struct AppSettingsView: View {
             }
         }
 
-        var keywords: String {
-            switch self {
-            case .general: "launch login notifications application behavior"
-            case .engines: "providers openvpn openconnect fortinet versions approval"
-            case .security: "helper service privileged trust safety boundary"
-            }
-        }
     }
 
     var body: some View {
@@ -128,37 +120,11 @@ struct AppSettingsView: View {
 
             Spacer(minLength: 20)
 
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Theme.Palette.textTertiary)
-                TextField("Search settings", text: $search)
-                    .textFieldStyle(.plain)
-                    .font(.caption12)
-                    .frame(width: 180)
-                if !search.isEmpty {
-                    Button { search = "" } label: {
-                        Image(systemName: "xmark.circle.fill")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.Palette.textTertiary)
-                }
-            }
-            .padding(.horizontal, 10)
-            .frame(height: 30)
-            .background(RoundedRectangle(cornerRadius: Theme.Radius.control).fill(Theme.Palette.well))
-            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.control).strokeBorder(Theme.Palette.hairlineBright))
+            BifrostWordmark(style: .monochrome, height: 30)
         }
         .padding(.leading, 28)
         .padding(.trailing, 22)
         .frame(height: 68)
-    }
-
-    private var filteredDestinations: [SettingsDestination] {
-        guard !search.isEmpty else { return SettingsDestination.allCases }
-        return SettingsDestination.allCases.filter {
-            ($0.rawValue + " " + $0.keywords).localizedCaseInsensitiveContains(search)
-        }
     }
 
     private var settingsRail: some View {
@@ -167,7 +133,7 @@ struct AppSettingsView: View {
                 .padding(.horizontal, 10)
 
             VStack(spacing: 3) {
-                ForEach(filteredDestinations) { destination in
+                ForEach(SettingsDestination.allCases) { destination in
                     SettingsRailRow(
                         title: destination.rawValue,
                         symbol: destination.symbol,
@@ -176,14 +142,6 @@ struct AppSettingsView: View {
                         withAnimation(Theme.Motion.state) { selection = destination }
                     }
                 }
-            }
-
-            if filteredDestinations.isEmpty {
-                Text("No settings match “\(search)”.")
-                    .font(.caption11)
-                    .foregroundStyle(Theme.Palette.textTertiary)
-                    .padding(.horizontal, 10)
-                    .padding(.top, 4)
             }
 
             Spacer()
