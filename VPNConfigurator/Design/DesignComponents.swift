@@ -520,48 +520,61 @@ struct SettingsCard<Content: View>: View {
     let title: String
     var symbol: String?
     var tint: Color = Theme.Palette.brand
-    var spacing: CGFloat = 14
+    var spacing: CGFloat?
+    var dense = false
+    var fillsHeight = false
     @ViewBuilder var content: () -> Content
 
     init(
         _ title: String,
         symbol: String? = nil,
         tint: Color = Theme.Palette.brand,
-        spacing: CGFloat = 14,
+        spacing: CGFloat? = nil,
+        dense: Bool = false,
+        fillsHeight: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
         self.symbol = symbol
         self.tint = tint
         self.spacing = spacing
+        self.dense = dense
+        self.fillsHeight = fillsHeight
         self.content = content
     }
 
+    private var inset: CGFloat { dense ? 12 : 18 }
+    private var rowSpacing: CGFloat { spacing ?? (dense ? 10 : 14) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
+            HStack(spacing: dense ? 8 : 10) {
                 if let symbol {
-                    IconBadge(symbol: symbol, tint: tint, size: 26)
+                    IconBadge(symbol: symbol, tint: tint, size: dense ? 22 : 26)
                 }
                 Text(title)
                     .font(.panelTitle)
                     .foregroundStyle(Theme.Palette.textPrimary)
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 15)
-            .padding(.bottom, 13)
+            .padding(.horizontal, inset)
+            .padding(.top, dense ? 10 : 15)
+            .padding(.bottom, dense ? 9 : 13)
 
             Rectangle()
                 .fill(Theme.Palette.hairline)
                 .frame(height: 1)
 
-            VStack(alignment: .leading, spacing: spacing) {
+            VStack(alignment: .leading, spacing: rowSpacing) {
                 content()
             }
-            .padding(18)
+            .padding(inset)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: fillsHeight ? .infinity : nil,
+            alignment: .topLeading
+        )
         .mattePanel()
     }
 }

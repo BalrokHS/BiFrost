@@ -1,13 +1,10 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct DashboardView: View {
     @Environment(VPNController.self) private var controller
     let openSettings: () -> Void
 
     @State private var showingNewProfile = false
-    @State private var showingImporter = false
-    @State private var importError: String?
 
     private let columns = [
         GridItem(.adaptive(minimum: 330, maximum: 460), spacing: 16)
@@ -44,20 +41,6 @@ struct DashboardView: View {
             ProfileEditorView()
                 .environment(controller)
         }
-        .fileImporter(
-            isPresented: $showingImporter,
-            allowedContentTypes: [.data, .plainText],
-            allowsMultipleSelection: true,
-            onCompletion: importFiles
-        )
-        .alert("Import failed", isPresented: Binding(
-            get: { importError != nil },
-            set: { if !$0 { importError = nil } }
-        )) {
-            Button("OK") { importError = nil }
-        } message: {
-            Text(importError ?? "")
-        }
     }
 
     // MARK: - Header
@@ -89,25 +72,18 @@ struct DashboardView: View {
                 }
 
                 HStack(spacing: 16) {
-                    Menu {
-                        Button("New profile", systemImage: "plus") {
-                            showingNewProfile = true
-                        }
-                        .keyboardShortcut("n", modifiers: .command)
-
-                        Button("Import configuration", systemImage: "square.and.arrow.down") {
-                            showingImporter = true
-                        }
+                    Button {
+                        showingNewProfile = true
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 18, weight: .medium))
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())
                     }
-                    .menuIndicator(.hidden)
                     .buttonStyle(.plain)
                     .foregroundStyle(Theme.Palette.textPrimary)
-                    .help("Add or import a VPN profile")
+                    .keyboardShortcut("n", modifiers: .command)
+                    .help("Add a VPN profile")
 
                     Button(action: openSettings) {
                         Image(systemName: "gearshape")
@@ -173,15 +149,4 @@ struct DashboardView: View {
         .glassCard(interactive: false)
     }
 
-    private func importFiles(_ result: Result<[URL], Error>) {
-        do {
-            for url in try result.get() {
-                let accessed = url.startAccessingSecurityScopedResource()
-                defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-                try controller.importConfiguration(at: url)
-            }
-        } catch {
-            importError = error.localizedDescription
-        }
-    }
 }

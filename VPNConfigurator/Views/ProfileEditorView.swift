@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ProfileEditorView: View {
     @Environment(\.dismiss) private var dismiss
@@ -8,6 +9,10 @@ struct ProfileEditorView: View {
     @State private var draft: ProfileDraft
     @State private var validationMessage: String?
     @State private var savedPasswordState = SavedPasswordState.checking
+    @State private var currentStep = EditorStep.connection
+    @State private var showingConfigurationImporter = false
+    @State private var temporaryConfigurationPath: String?
+    @State private var didSave = false
 
     init(profile: VPNProfile? = nil) {
         existingProfile = profile
@@ -18,24 +23,39 @@ struct ProfileEditorView: View {
         VStack(spacing: 0) {
             sheetHeader
             HairlineRule()
+            stepper
+            HairlineRule()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    connectionCard
-                    authenticationCard
-                    networkCard
-                    appearanceCard
+                Group {
+                    switch currentStep {
+                    case .connection: connectionCard
+                    case .authentication: authenticationCard
+                    case .network: networkCard
+                    case .appearance: appearanceCard
+                    }
                 }
-                .padding(22)
+                .id(currentStep)
+                .transition(.opacity.combined(with: .move(edge: .trailing)))
+                .frame(maxWidth: 760)
+                .padding(.horizontal, 34)
+                .padding(.vertical, 28)
+                .frame(maxWidth: .infinity)
             }
             .scrollContentBackground(.hidden)
 
             HairlineRule()
             footer
         }
-        .frame(width: 640, height: 680)
+        .frame(width: 920, height: 680)
         .background(Theme.Palette.canvas)
         .preferredColorScheme(.dark)
+        .fileImporter(
+            isPresented: $showingConfigurationImporter,
+            allowedContentTypes: [.data, .plainText],
+            allowsMultipleSelection: false,
+            onCompletion: importOpenVPNConfiguration
+        )
         .alert("Profile needs attention", isPresented: Binding(
             get: { validationMessage != nil },
             set: { if !$0 { validationMessage = nil } }
@@ -55,6 +75,11 @@ struct ProfileEditorView: View {
         .task(id: existingProfile?.id) {
             refreshSavedPasswordState()
         }
+        .onDisappear {
+            if !didSave {
+                ConfigurationImporter.removeManagedOpenVPNConfiguration(at: temporaryConfigurationPath)
+            }
+        }
     }
 
     // MARK: - Chrome
@@ -65,14 +90,14 @@ struct ProfileEditorView: View {
                 symbol: draft.provider.symbol,
                 tint: draft.accent.tint,
                 highlight: draft.accent.highlight,
-                size: 36
+                size: 30
             )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(existingProfile == nil ? "New VPN profile" : "Edit VPN profile")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.Palette.textPrimary)
-                Text(draft.name.isEmpty ? "Unnamed" : draft.name)
+                Text("\(currentStep.title) · \(draft.name.isEmpty ? "Unnamed" : draft.name)")
                     .font(.caption12)
                     .foregroundStyle(Theme.Palette.textSecondary)
                     .lineLimit(1)
@@ -80,20 +105,83 @@ struct ProfileEditorView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .animation(Theme.Motion.state, value: draft.accent)
+    }
+
+    private var stepper: some View {
+        HStack(spacing: 0) {
+            ForEach(EditorStep.allCases) { step in
+                Button {
+                    move(to: step)
+                } label: {
+                    VStack(spacing: 7) {
+                        ZStack {
+                            Circle()
+                                .fill(step.rawValue <= currentStep.rawValue ? draft.accent.tint.opacity(0.20) : Theme.Palette.surface)
+                                .frame(width: 30, height: 30)
+                            Circle()
+                                .strokeBorder(step.rawValue <= currentStep.rawValue ? draft.accent.tint.opacity(0.65) : Theme.Palette.hairlineBright)
+                                .frame(width: 30, height: 30)
+                            if step.rawValue < currentStep.rawValue {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .bold))
+                            } else {
+                                Text("\(step.rawValue + 1)")
+                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            }
+                        }
+                        .foregroundStyle(step.rawValue <= currentStep.rawValue ? Theme.Palette.textPrimary : Theme.Palette.textTertiary)
+
+                        Text(step.title)
+                            .font(.system(size: 11.5, weight: step == currentStep ? .semibold : .medium))
+                            .foregroundStyle(step == currentStep ? Theme.Palette.textPrimary : Theme.Palette.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                if step != EditorStep.allCases.last {
+                    Rectangle()
+                        .fill(step.rawValue < currentStep.rawValue ? draft.accent.tint.opacity(0.55) : Theme.Palette.hairline)
+                        .frame(maxWidth: 72, maxHeight: 1)
+                        .offset(y: -11)
+                }
+            }
+        }
+        .padding(.horizontal, 46)
+        .padding(.vertical, 17)
+        .animation(Theme.Motion.state, value: currentStep)
     }
 
     private var footer: some View {
         HStack(spacing: 10) {
+            Text("Step \(currentStep.rawValue + 1) of \(EditorStep.allCases.count)")
+                .font(.caption12)
+                .foregroundStyle(Theme.Palette.textTertiary)
+
             Spacer()
-            Button("Cancel") { dismiss() }
+
+            Button("Cancel") { cancel() }
                 .buttonStyle(.quiet)
                 .keyboardShortcut(.cancelAction)
-            Button("Save") { save() }
-                .buttonStyle(.accent(draft.accent.tint))
-                .keyboardShortcut(.defaultAction)
+
+            if currentStep != .connection {
+                Button("Back") { moveBack() }
+                    .buttonStyle(.quiet)
+            }
+
+            if currentStep == .appearance {
+                Button("Save profile") { save() }
+                    .buttonStyle(.accent(draft.accent.tint))
+                    .keyboardShortcut(.defaultAction)
+            } else {
+                Button("Continue", systemImage: "chevron.right") { moveForward() }
+                    .buttonStyle(.accent(draft.accent.tint))
+                    .keyboardShortcut(.defaultAction)
+            }
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 14)
@@ -102,17 +190,17 @@ struct ProfileEditorView: View {
     // MARK: - Sections
 
     private var connectionCard: some View {
-        SettingsCard("Connection", symbol: "point.3.connected.trianglepath.dotted") {
+        SettingsCard("Connection", symbol: "point.3.connected.trianglepath.dotted", dense: true, fillsHeight: true) {
             SettingsRow("Name") {
                 TextField("", text: $draft.name, prompt: Text("Company VPN"))
                     .textFieldStyle(.plain)
                     .fieldChrome()
-                    .frame(width: 280)
+                    .frame(maxWidth: 360)
             }
 
             HairlineRule()
 
-            VStack(alignment: .leading, spacing: 9) {
+            VStack(alignment: .leading, spacing: 7) {
                 Text("Client")
                     .font(.body13)
                     .foregroundStyle(Theme.Palette.textPrimary)
@@ -130,27 +218,34 @@ struct ProfileEditorView: View {
 
             if draft.provider == .openVPN {
                 SettingsRow("Imported profile") {
-                    Text(openVPNImportName)
-                        .font(.readout)
-                        .foregroundStyle(Theme.Palette.textSecondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    HStack(spacing: 9) {
+                        Text(openVPNImportName)
+                            .font(.readout)
+                            .foregroundStyle(Theme.Palette.textSecondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Button(draft.configurationPath.isEmpty ? "Choose…" : "Replace…") {
+                            showingConfigurationImporter = true
+                        }
+                        .buttonStyle(.quiet)
+                    }
+                    .frame(maxWidth: 390, alignment: .trailing)
                 }
-                SettingsNote("The remote endpoint and TLS material come from the imported OpenVPN profile. Referenced credentials are ignored.")
+                SettingsNote("Choose an OpenVPN configuration here. Its endpoint and TLS material are stored securely; referenced credentials are ignored.")
             } else {
                 SettingsRow("Server") {
                     TextField("", text: $draft.server, prompt: Text("vpn.example.com:443"))
                         .textFieldStyle(.plain)
                         .fieldChrome()
-                        .frame(width: 280)
+                        .frame(maxWidth: 360)
                 }
             }
         }
     }
 
     private var authenticationCard: some View {
-        SettingsCard("Authentication", symbol: "person.badge.key.fill") {
-            VStack(alignment: .leading, spacing: 9) {
+        SettingsCard("Authentication", symbol: "person.badge.key.fill", dense: true, fillsHeight: true) {
+            VStack(alignment: .leading, spacing: 7) {
                 Text("Method")
                     .font(.body13)
                     .foregroundStyle(Theme.Palette.textPrimary)
@@ -170,7 +265,7 @@ struct ProfileEditorView: View {
                 TextField("", text: $draft.username)
                     .textFieldStyle(.plain)
                     .fieldChrome()
-                    .frame(width: 280)
+                    .frame(maxWidth: 360)
             }
 
             if draft.provider != .openVPN {
@@ -178,7 +273,7 @@ struct ProfileEditorView: View {
                     TextField("", text: $draft.serverCertificatePin, prompt: Text(certificateFieldPrompt))
                         .textFieldStyle(.plain)
                         .fieldChrome()
-                        .frame(width: 280)
+                        .frame(maxWidth: 360)
                 }
             }
 
@@ -211,19 +306,19 @@ struct ProfileEditorView: View {
     }
 
     private var networkCard: some View {
-        SettingsCard("Network", symbol: "arrow.triangle.branch", tint: Color(hex: 0x2DC7B4)) {
+        SettingsCard("Network", symbol: "arrow.triangle.branch", tint: Color(hex: 0x2DC7B4), dense: true, fillsHeight: true) {
             SettingsRow("DNS servers") {
                 TextField("", text: $draft.dnsServers, prompt: Text("10.0.0.53, 10.0.0.54"))
                     .textFieldStyle(.plain)
                     .fieldChrome()
-                    .frame(width: 280)
+                    .frame(maxWidth: 360)
             }
 
             SettingsRow("DNS domains") {
                 TextField("", text: $draft.dnsDomains, prompt: Text("internal.example, corp.local"))
                     .textFieldStyle(.plain)
                     .fieldChrome()
-                    .frame(width: 280)
+                    .frame(maxWidth: 360)
             }
 
             SettingsNote("Configured domains are resolved only by this profile's DNS servers. VPN-advertised DNS is ignored. Leave both fields empty to make no DNS changes.")
@@ -231,7 +326,7 @@ struct ProfileEditorView: View {
     }
 
     private var appearanceCard: some View {
-        SettingsCard("Appearance", symbol: "paintpalette", tint: draft.accent.tint) {
+        SettingsCard("Appearance", symbol: "paintpalette", tint: draft.accent.tint, dense: true, fillsHeight: true) {
             SettingsRow("Accent", detail: "Tints this profile's card and the window while it is connected.") {
                 HStack(spacing: 8) {
                     ForEach(ProfileAccent.allCases, id: \.self) { accent in
@@ -245,6 +340,24 @@ struct ProfileEditorView: View {
     }
 
     // MARK: - Derived
+
+    private enum EditorStep: Int, CaseIterable, Identifiable {
+        case connection
+        case authentication
+        case network
+        case appearance
+
+        var id: Self { self }
+
+        var title: String {
+            switch self {
+            case .connection: "Connection"
+            case .authentication: "Authentication"
+            case .network: "Network"
+            case .appearance: "Appearance"
+            }
+        }
+    }
 
     private var availableAuthenticationMethods: [AuthenticationMethod] {
         switch draft.provider {
@@ -269,6 +382,86 @@ struct ProfileEditorView: View {
 
     // MARK: - Actions
 
+    private func move(to step: EditorStep) {
+        guard step != currentStep else { return }
+        if step.rawValue > currentStep.rawValue {
+            for rawValue in currentStep.rawValue..<step.rawValue {
+                guard let intermediate = EditorStep(rawValue: rawValue), validate(intermediate) else { return }
+            }
+        }
+        withAnimation(Theme.Motion.state) { currentStep = step }
+    }
+
+    private func moveForward() {
+        guard validate(currentStep),
+              let next = EditorStep(rawValue: currentStep.rawValue + 1) else { return }
+        withAnimation(Theme.Motion.state) { currentStep = next }
+    }
+
+    private func moveBack() {
+        guard let previous = EditorStep(rawValue: currentStep.rawValue - 1) else { return }
+        withAnimation(Theme.Motion.state) { currentStep = previous }
+    }
+
+    private func cancel() {
+        ConfigurationImporter.removeManagedOpenVPNConfiguration(at: temporaryConfigurationPath)
+        temporaryConfigurationPath = nil
+        dismiss()
+    }
+
+    private func importOpenVPNConfiguration(_ result: Result<[URL], Error>) {
+        do {
+            guard let url = try result.get().first else { return }
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+
+            let imported = try ConfigurationImporter.profile(from: url)
+            guard imported.provider == .openVPN else {
+                validationMessage = "Choose an OpenVPN configuration file."
+                return
+            }
+
+            ConfigurationImporter.removeManagedOpenVPNConfiguration(at: temporaryConfigurationPath)
+            let enteredName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let selectedAccent = draft.accent
+            draft = ProfileDraft(profile: imported)
+            if !enteredName.isEmpty { draft.name = enteredName }
+            draft.accent = selectedAccent
+            temporaryConfigurationPath = imported.configurationPath
+        } catch {
+            validationMessage = error.localizedDescription
+        }
+    }
+
+    private func validate(_ step: EditorStep) -> Bool {
+        let message: String?
+        switch step {
+        case .connection:
+            if draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                message = "Give the profile a name."
+            } else if draft.provider == .openVPN && draft.configurationPath.isEmpty {
+                message = "Choose an OpenVPN configuration file."
+            } else if draft.provider != .openVPN && draft.server.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                message = "Enter the VPN server."
+            } else {
+                message = nil
+            }
+        case .network:
+            let hasDNSServers = !draft.list(draft.dnsServers).isEmpty
+            let hasDNSDomains = !draft.list(draft.dnsDomains).isEmpty
+            message = hasDNSServers == hasDNSDomains
+                ? nil
+                : "Split DNS requires both DNS servers and DNS domains. Leave both empty if this VPN should not change DNS."
+        case .authentication, .appearance:
+            message = nil
+        }
+
+        guard let message else { return true }
+        withAnimation(Theme.Motion.state) { currentStep = step }
+        validationMessage = message
+        return false
+    }
+
     private func refreshSavedPasswordState() {
         guard let profile = existingProfile, profile.authentication != .saml else { return }
         do {
@@ -291,24 +484,8 @@ struct ProfileEditorView: View {
     }
 
     private func save() {
-        guard !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            validationMessage = "Give the profile a name."
-            return
-        }
-        guard draft.provider == .openVPN ||
-                !draft.server.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            validationMessage = "Enter the VPN server."
-            return
-        }
-        guard draft.provider != .openVPN || !draft.configurationPath.isEmpty else {
-            validationMessage = "Create OpenVPN profiles with the Import button so their endpoint and TLS material can be stored securely."
-            return
-        }
-        let hasDNSServers = !draft.list(draft.dnsServers).isEmpty
-        let hasDNSDomains = !draft.list(draft.dnsDomains).isEmpty
-        guard hasDNSServers == hasDNSDomains else {
-            validationMessage = "Split DNS requires both DNS servers and DNS domains. Leave both empty if this VPN should not change DNS."
-            return
+        for step in EditorStep.allCases {
+            guard validate(step) else { return }
         }
 
         let profile = draft.makeProfile(id: existingProfile?.id ?? UUID())
@@ -317,6 +494,13 @@ struct ProfileEditorView: View {
         } else {
             controller.replace(profile)
         }
+        if existingProfile?.configurationPath != profile.configurationPath {
+            ConfigurationImporter.removeManagedOpenVPNConfiguration(at: existingProfile?.configurationPath)
+        }
+        if temporaryConfigurationPath != profile.configurationPath {
+            ConfigurationImporter.removeManagedOpenVPNConfiguration(at: temporaryConfigurationPath)
+        }
+        didSave = true
         dismiss()
     }
 }

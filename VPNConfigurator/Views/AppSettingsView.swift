@@ -146,33 +146,40 @@ struct AppSettingsView: View {
 
             Spacer()
         }
-        .padding(14)
-        .frame(width: 190)
+        .padding(16)
+        .frame(width: 224)
         .frame(maxHeight: .infinity)
         .background(Theme.Palette.canvasDeep.opacity(0.36))
     }
 
     @ViewBuilder
     private var content: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                switch selection {
-                case .general: generalContent
-                case .engines: enginesContent
-                case .security: securityContent
+        switch selection {
+        case .engines:
+            enginesContent
+                .padding(.horizontal, 28)
+                .padding(.vertical, 26)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        case .general, .security:
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    if selection == .general {
+                        generalContent
+                    } else {
+                        securityContent
+                    }
                 }
+                .padding(.horizontal, 28)
+                .padding(.vertical, 26)
+                .frame(maxWidth: 920, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 28)
-            .padding(.vertical, 26)
-            .frame(maxWidth: 920, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .scrollContentBackground(.hidden)
         }
-        .scrollContentBackground(.hidden)
     }
 
-    private func pageTitle(_ eyebrow: String, _ title: String, _ detail: String) -> some View {
+    private func pageTitle(_ title: String, _ detail: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Eyebrow(eyebrow)
             Text(title)
                 .font(.heroTitle)
                 .tracking(-0.5)
@@ -191,7 +198,7 @@ struct AppSettingsView: View {
 
     private var generalContent: some View {
         VStack(alignment: .leading, spacing: 18) {
-            pageTitle("Application", "General", "Choose how the app behaves between sessions.")
+            pageTitle("General", "Choose how the app behaves between sessions.")
 
             SettingsCard("Startup & notifications", symbol: "switch.2") {
                 SettingsRow(
@@ -236,7 +243,7 @@ struct AppSettingsView: View {
     private var enginesContent: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .bottom, spacing: 18) {
-                pageTitle("Providers", "VPN engines", "Installed clients, versions and privileged approval at a glance.")
+                pageTitle("VPN engines", "Manage installed clients and their privileged approval.")
                 Spacer(minLength: 12)
                 Button { refreshEngines() } label: {
                     HStack(spacing: 7) {
@@ -252,24 +259,25 @@ struct AppSettingsView: View {
                 .disabled(inventory?.isRefreshing == true)
             }
 
-            engineSummary
             engineWorkspace
         }
-    }
-
-    private var engineSummary: some View {
-        HStack(spacing: 10) {
-            let reports = inventory?.reports ?? []
-            MiniStat(title: "Installed", value: "\(reports.filter(\.isInstalled).count)", symbol: "shippingbox.fill")
-            MiniStat(title: "Approved", value: "\(reports.filter { $0.state == .ready }.count)", symbol: "checkmark.shield.fill", tone: ConnectionState.connected.tone)
-            MiniStat(title: "Needs attention", value: "\(reports.filter { $0.state == .changed || $0.state == .notApproved }.count)", symbol: "exclamationmark.triangle.fill", tone: ConnectionState.connecting.tone)
-            MiniStat(title: "Last check", value: inventory?.isRefreshing == true ? "Now" : lastRefresh.formatted(date: .omitted, time: .shortened), symbol: "clock")
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var engineWorkspace: some View {
-        HStack(alignment: .top, spacing: 0) {
-            VStack(spacing: 2) {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Engines")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.Palette.textPrimary)
+                    Text(inventory?.isRefreshing == true ? "Checking status…" : "Last checked \(lastRefresh.formatted(date: .omitted, time: .shortened))")
+                        .font(.caption11)
+                        .foregroundStyle(Theme.Palette.textTertiary)
+                }
+                .padding(.horizontal, 9)
+                .padding(.top, 5)
+
                 if let inventory, !inventory.reports.isEmpty {
                     ForEach(inventory.reports) { report in
                         EnginePickerRow(report: report, selected: selectedEngine == report.engine) {
@@ -285,11 +293,13 @@ struct AppSettingsView: View {
                     }
                     .padding(18)
                 }
-            }
-            .padding(8)
-            .frame(width: 238)
 
-            HairlineRule().frame(width: 1)
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .frame(width: 260)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .mattePanel(radius: Theme.Radius.card, fill: Theme.Palette.canvasDeep.opacity(0.38))
 
             Group {
                 if let report = inventory?.reports.first(where: { $0.engine == selectedEngine }),
@@ -302,19 +312,19 @@ struct AppSettingsView: View {
                             .font(.caption12)
                             .foregroundStyle(Theme.Palette.textSecondary)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 330)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .padding(18)
-            .frame(maxWidth: .infinity, minHeight: 330, alignment: .topLeading)
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .mattePanel(radius: Theme.Radius.card, fill: Theme.Palette.surface)
         }
-        .mattePanel(radius: Theme.Radius.card, fill: Theme.Palette.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private var securityContent: some View {
         VStack(alignment: .leading, spacing: 18) {
-            pageTitle("Trust", "Security", "Control the privileged service and inspect the app’s safety boundary.")
+            pageTitle("Security", "Control the privileged service and inspect the app’s safety boundary.")
             helperCard
             SettingsCard("Current safety boundary", symbol: "exclamationmark.shield", tint: Color(hex: 0xE8CE63)) {
                 SettingsNote("Approving an engine pins its executable and every library it loads. The helper verifies those bytes before every connection, so package updates require approval again. OpenFortiVPN SAML handoff and profile-scoped macOS resolver rules are enabled; the embedded DNS proxy is not.")
@@ -385,16 +395,16 @@ private struct SettingsRailRow: View {
         Button(action: action) {
             HStack(spacing: 9) {
                 Image(systemName: symbol)
-                    .font(.system(size: 11.5, weight: .medium))
-                    .frame(width: 15)
+                    .font(.system(size: 13, weight: .medium))
+                    .frame(width: 18)
                     .foregroundStyle(selected ? Theme.Palette.brandBright : Theme.Palette.textTertiary)
                 Text(title)
-                    .font(.rowTitle)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(selected ? Theme.Palette.textPrimary : Theme.Palette.textSecondary)
                 Spacer()
             }
-            .padding(.horizontal, 10)
-            .frame(height: 32)
+            .padding(.horizontal, 12)
+            .frame(height: 40)
             .background {
                 RoundedRectangle(cornerRadius: Theme.Radius.control)
                     .fill(selected ? Theme.Palette.brand.opacity(0.18) : (hovering ? Theme.Palette.surfaceHover : .clear))
@@ -424,31 +434,6 @@ private struct StatusLabel: View {
         .padding(.vertical, 4)
         .background(Capsule().fill(tone.opacity(0.11)))
         .overlay(Capsule().strokeBorder(tone.opacity(0.2)))
-    }
-}
-
-private struct MiniStat: View {
-    let title: String
-    let value: String
-    let symbol: String
-    var tone: Color = Theme.Palette.textPrimary
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(tone.opacity(0.78))
-                .frame(width: 26, height: 26)
-                .background(Circle().fill(tone.opacity(0.09)))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value).font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(tone)
-                Text(title).font(.caption11).foregroundStyle(Theme.Palette.textTertiary).lineLimit(1)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity)
-        .mattePanel(radius: Theme.Radius.row)
     }
 }
 
