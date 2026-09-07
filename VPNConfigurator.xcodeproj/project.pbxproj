@@ -1,0 +1,551 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 71;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* VPNConfiguratorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* VPNConfiguratorApp.swift */; };
+		A10000000000000000000002 /* VPNProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* VPNProfile.swift */; };
+		A10000000000000000000003 /* VPNController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* VPNController.swift */; };
+		A10000000000000000000004 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* RootView.swift */; };
+		A10000000000000000000005 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* DashboardView.swift */; };
+		A10000000000000000000006 /* VPNCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* VPNCard.swift */; };
+		A10000000000000000000007 /* ProfilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* ProfilesView.swift */; };
+		A10000000000000000000008 /* AppSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* AppSettingsView.swift */; };
+		A10000000000000000000009 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* MenuBarView.swift */; };
+		A1000000000000000000000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* Assets.xcassets */; };
+		A1000000000000000000000B /* ProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000C /* ProfileStore.swift */; };
+		A1000000000000000000000C /* ConfigurationImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* ConfigurationImporter.swift */; };
+		A1000000000000000000000D /* ProfileEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000E /* ProfileEditorView.swift */; };
+		A1000000000000000000000E /* VPNCredentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000F /* VPNCredentials.swift */; };
+		A1000000000000000000000F /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000010 /* KeychainStore.swift */; };
+		A10000000000000000000011 /* CredentialPromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* CredentialPromptView.swift */; };
+		A10000000000000000000012 /* HelperXPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* HelperXPCProtocol.swift */; };
+		A10000000000000000000013 /* PrivilegedHelperManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* PrivilegedHelperManager.swift */; };
+		A10000000000000000000014 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000015 /* main.swift */; };
+		A10000000000000000000015 /* HelperXPCProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* HelperXPCProtocol.swift */; };
+		A10000000000000000000016 /* VPNConfiguratorHelper in Embed Helper */ = {isa = PBXBuildFile; fileRef = A20000000000000000000017 /* VPNConfiguratorHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		A10000000000000000000017 /* com.klianos.VPNConfigurator.helper.plist in Copy LaunchDaemon */ = {isa = PBXBuildFile; fileRef = A20000000000000000000016 /* com.klianos.VPNConfigurator.helper.plist */; };
+        A10000000000000000000018 /* OpenVPNConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000018; };
+        A10000000000000000000019 /* OpenVPNConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000018; };
+        A10000000000000000000020 /* ExecutableTrust.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000020; };
+        A10000000000000000000021 /* EngineDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000021; };
+        A10000000000000000000022 /* EngineDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000021; };
+        A10000000000000000000023 /* ApprovedEngineStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000023; };
+		A10000000000000000000024 /* EngineInventory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000024; };
+		A10000000000000000000025 /* HelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000025 /* HelperService.swift */; };
+		A10000000000000000000026 /* VPNSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000026 /* VPNSession.swift */; };
+		A10000000000000000000027 /* HelperListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000027 /* HelperListener.swift */; };
+		A10000000000000000000028 /* OrphanedArtifactCleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000028 /* OrphanedArtifactCleanup.swift */; };
+		A10000000000000000000029 /* HelperInputValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000029 /* HelperInputValidator.swift */; };
+		A1000000000000000000002A /* SecureRuntimeFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002A /* SecureRuntimeFiles.swift */; };
+		A1000000000000000000002B /* ResolverManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000002B /* ResolverManager.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AC0000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A80000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000002;
+			remoteInfo = VPNConfiguratorHelper;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AB0000000000000000000001 /* Embed Helper */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				A10000000000000000000016 /* VPNConfiguratorHelper in Embed Helper */,
+			);
+			name = "Embed Helper";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB0000000000000000000002 /* Copy LaunchDaemon */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchDaemons;
+			dstSubfolderSpec = 1;
+			files = (
+				A10000000000000000000017 /* com.klianos.VPNConfigurator.helper.plist in Copy LaunchDaemon */,
+			);
+			name = "Copy LaunchDaemon";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A20000000000000000000001 /* VPNConfiguratorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNConfiguratorApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* VPNProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNProfile.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* VPNController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNController.swift; sourceTree = "<group>"; };
+		A20000000000000000000004 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* VPNCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNCard.swift; sourceTree = "<group>"; };
+		A20000000000000000000007 /* ProfilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesView.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* AppSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		A2000000000000000000000A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A2000000000000000000000B /* VPNConfigurator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VPNConfigurator.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2000000000000000000000C /* ProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileStore.swift; sourceTree = "<group>"; };
+		A2000000000000000000000D /* ConfigurationImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationImporter.swift; sourceTree = "<group>"; };
+		A2000000000000000000000E /* ProfileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditorView.swift; sourceTree = "<group>"; };
+		A2000000000000000000000F /* VPNCredentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNCredentials.swift; sourceTree = "<group>"; };
+		A20000000000000000000010 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000012 /* CredentialPromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialPromptView.swift; sourceTree = "<group>"; };
+		A20000000000000000000013 /* HelperXPCProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPCProtocol.swift; sourceTree = "<group>"; };
+		A20000000000000000000014 /* PrivilegedHelperManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivilegedHelperManager.swift; sourceTree = "<group>"; };
+		A20000000000000000000015 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		A20000000000000000000016 /* com.klianos.VPNConfigurator.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = com.klianos.VPNConfigurator.helper.plist; sourceTree = "<group>"; };
+		A20000000000000000000017 /* VPNConfiguratorHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = VPNConfiguratorHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+        A20000000000000000000018 /* OpenVPNConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenVPNConfiguration.swift; sourceTree = "<group>"; };
+        A20000000000000000000020 /* ExecutableTrust.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutableTrust.swift; sourceTree = "<group>"; };
+        A20000000000000000000021 /* EngineDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineDiscovery.swift; sourceTree = "<group>"; };
+        A20000000000000000000023 /* ApprovedEngineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovedEngineStore.swift; sourceTree = "<group>"; };
+		A20000000000000000000024 /* EngineInventory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineInventory.swift; sourceTree = "<group>"; };
+		A20000000000000000000025 /* HelperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperService.swift; sourceTree = "<group>"; };
+		A20000000000000000000026 /* VPNSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VPNSession.swift; sourceTree = "<group>"; };
+		A20000000000000000000027 /* HelperListener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperListener.swift; sourceTree = "<group>"; };
+		A20000000000000000000028 /* OrphanedArtifactCleanup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrphanedArtifactCleanup.swift; sourceTree = "<group>"; };
+		A20000000000000000000029 /* HelperInputValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperInputValidator.swift; sourceTree = "<group>"; };
+		A2000000000000000000002A /* SecureRuntimeFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureRuntimeFiles.swift; sourceTree = "<group>"; };
+		A2000000000000000000002B /* ResolverManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResolverManager.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A30000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A30000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A40000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A40000000000000000000002 /* VPNConfigurator */,
+				A40000000000000000000009 /* VPNConfiguratorHelper */,
+				A40000000000000000000007 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A40000000000000000000002 /* VPNConfigurator */ = {
+			isa = PBXGroup;
+			children = (
+				A40000000000000000000003 /* App */,
+				A40000000000000000000004 /* Models */,
+				A40000000000000000000005 /* Services */,
+				A40000000000000000000006 /* Views */,
+				A40000000000000000000008 /* Shared */,
+				A2000000000000000000000A /* Assets.xcassets */,
+			);
+			path = VPNConfigurator;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000003 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000001 /* VPNConfiguratorApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000002 /* VPNProfile.swift */,
+				A2000000000000000000000F /* VPNCredentials.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000003 /* VPNController.swift */,
+				A2000000000000000000000C /* ProfileStore.swift */,
+				A2000000000000000000000D /* ConfigurationImporter.swift */,
+				A20000000000000000000010 /* KeychainStore.swift */,
+				A20000000000000000000024 /* EngineInventory.swift */,
+				A20000000000000000000014 /* PrivilegedHelperManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000004 /* RootView.swift */,
+				A20000000000000000000005 /* DashboardView.swift */,
+				A20000000000000000000006 /* VPNCard.swift */,
+				A20000000000000000000007 /* ProfilesView.swift */,
+				A2000000000000000000000E /* ProfileEditorView.swift */,
+				A20000000000000000000012 /* CredentialPromptView.swift */,
+				A20000000000000000000008 /* AppSettingsView.swift */,
+				A20000000000000000000009 /* MenuBarView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A2000000000000000000000B /* VPNConfigurator.app */,
+				A20000000000000000000017 /* VPNConfiguratorHelper */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000008 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000013 /* HelperXPCProtocol.swift */,
+                A20000000000000000000018 /* OpenVPNConfiguration.swift */,
+                A20000000000000000000021 /* EngineDiscovery.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A40000000000000000000009 /* VPNConfiguratorHelper */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000015 /* main.swift */,
+				A20000000000000000000025 /* HelperService.swift */,
+				A20000000000000000000026 /* VPNSession.swift */,
+				A20000000000000000000027 /* HelperListener.swift */,
+				A20000000000000000000028 /* OrphanedArtifactCleanup.swift */,
+				A20000000000000000000029 /* HelperInputValidator.swift */,
+				A2000000000000000000002A /* SecureRuntimeFiles.swift */,
+				A2000000000000000000002B /* ResolverManager.swift */,
+                A20000000000000000000020 /* ExecutableTrust.swift */,
+                A20000000000000000000023 /* ApprovedEngineStore.swift */,
+				A20000000000000000000016 /* com.klianos.VPNConfigurator.helper.plist */,
+			);
+			path = VPNConfiguratorHelper;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A50000000000000000000001 /* VPNConfigurator */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A90000000000000000000002 /* Build configuration list for PBXNativeTarget "VPNConfigurator" */;
+			buildPhases = (
+				A60000000000000000000001 /* Sources */,
+				A30000000000000000000001 /* Frameworks */,
+				A70000000000000000000001 /* Resources */,
+				AB0000000000000000000001 /* Embed Helper */,
+				AB0000000000000000000002 /* Copy LaunchDaemon */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AD0000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = VPNConfigurator;
+			productName = VPNConfigurator;
+			productReference = A2000000000000000000000B /* VPNConfigurator.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A50000000000000000000002 /* VPNConfiguratorHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A90000000000000000000003 /* Build configuration list for PBXNativeTarget "VPNConfiguratorHelper" */;
+			buildPhases = (
+				A60000000000000000000002 /* Sources */,
+				A30000000000000000000002 /* Frameworks */,
+				A70000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = VPNConfiguratorHelper;
+			productName = VPNConfiguratorHelper;
+			productReference = A20000000000000000000017 /* VPNConfiguratorHelper */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A80000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					A50000000000000000000001 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					A50000000000000000000002 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+				};
+			};
+			buildConfigurationList = A90000000000000000000001 /* Build configuration list for PBXProject "VPNConfigurator" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A40000000000000000000001;
+			minimizedProjectReferenceProxies = 1;
+			productRefGroup = A40000000000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A50000000000000000000001 /* VPNConfigurator */,
+				A50000000000000000000002 /* VPNConfiguratorHelper */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A70000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A70000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A60000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* VPNConfiguratorApp.swift in Sources */,
+				A10000000000000000000002 /* VPNProfile.swift in Sources */,
+				A10000000000000000000003 /* VPNController.swift in Sources */,
+				A10000000000000000000004 /* RootView.swift in Sources */,
+				A10000000000000000000005 /* DashboardView.swift in Sources */,
+				A10000000000000000000006 /* VPNCard.swift in Sources */,
+				A10000000000000000000007 /* ProfilesView.swift in Sources */,
+				A10000000000000000000008 /* AppSettingsView.swift in Sources */,
+				A10000000000000000000009 /* MenuBarView.swift in Sources */,
+				A1000000000000000000000B /* ProfileStore.swift in Sources */,
+				A1000000000000000000000C /* ConfigurationImporter.swift in Sources */,
+				A1000000000000000000000D /* ProfileEditorView.swift in Sources */,
+				A1000000000000000000000E /* VPNCredentials.swift in Sources */,
+				A1000000000000000000000F /* KeychainStore.swift in Sources */,
+				A10000000000000000000024 /* EngineInventory.swift in Sources */,
+				A10000000000000000000011 /* CredentialPromptView.swift in Sources */,
+				A10000000000000000000012 /* HelperXPCProtocol.swift in Sources */,
+                A10000000000000000000018 /* OpenVPNConfiguration.swift in Sources */,
+                A10000000000000000000021 /* EngineDiscovery.swift in Sources */,
+				A10000000000000000000013 /* PrivilegedHelperManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A60000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000014 /* main.swift in Sources */,
+				A10000000000000000000025 /* HelperService.swift in Sources */,
+				A10000000000000000000026 /* VPNSession.swift in Sources */,
+				A10000000000000000000027 /* HelperListener.swift in Sources */,
+				A10000000000000000000028 /* OrphanedArtifactCleanup.swift in Sources */,
+				A10000000000000000000029 /* HelperInputValidator.swift in Sources */,
+				A1000000000000000000002A /* SecureRuntimeFiles.swift in Sources */,
+				A1000000000000000000002B /* ResolverManager.swift in Sources */,
+                A10000000000000000000020 /* ExecutableTrust.swift in Sources */,
+                A10000000000000000000023 /* ApprovedEngineStore.swift in Sources */,
+				A10000000000000000000015 /* HelperXPCProtocol.swift in Sources */,
+                A10000000000000000000019 /* OpenVPNConfiguration.swift in Sources */,
+                A10000000000000000000022 /* EngineDiscovery.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AD0000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000002 /* VPNConfiguratorHelper */;
+			targetProxy = AC0000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AA0000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_STRICT_CONCURRENCY = complete;
+			};
+			name = Release;
+		};
+		AA0000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 68SX8JZQFD;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "VPN Configurator";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.klianos.VPNConfigurator;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 68SX8JZQFD;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "VPN Configurator";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.klianos.VPNConfigurator;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		AA0000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 68SX8JZQFD;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VPNConfiguratorHelper/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.klianos.VPNConfigurator.helper;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 68SX8JZQFD;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VPNConfiguratorHelper/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.klianos.VPNConfigurator.helper;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A90000000000000000000001 /* Build configuration list for PBXProject "VPNConfigurator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000001 /* Debug */,
+				AA0000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A90000000000000000000002 /* Build configuration list for PBXNativeTarget "VPNConfigurator" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000003 /* Debug */,
+				AA0000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A90000000000000000000003 /* Build configuration list for PBXNativeTarget "VPNConfiguratorHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000005 /* Debug */,
+				AA0000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A80000000000000000000001 /* Project object */;
+}
