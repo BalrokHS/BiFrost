@@ -2,12 +2,12 @@
 set -euo pipefail
 
 MODE="${1:-run}"
-APP_NAME="VPNConfigurator"
+APP_NAME="Bifrost"
 BUNDLE_ID="com.klianos.VPNConfigurator"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DERIVED_DATA="$ROOT_DIR/DerivedData"
-APP_BUNDLE="$DERIVED_DATA/Build/Products/Debug/VPNConfigurator.app"
-APP_BINARY="$APP_BUNDLE/Contents/MacOS/VPNConfigurator"
+APP_BUNDLE="$DERIVED_DATA/Build/Products/Debug/Bifrost.app"
+APP_BINARY="$APP_BUNDLE/Contents/MacOS/Bifrost"
 
 if [[ "$MODE" != "--build" && "$MODE" != "build" ]]; then
   pkill -x "$APP_NAME" >/dev/null 2>&1 || true

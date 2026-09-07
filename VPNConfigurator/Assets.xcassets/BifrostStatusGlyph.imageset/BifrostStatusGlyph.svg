@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="18" viewBox="0 0 28 18">
+  <defs>
+    <mask id="cutout-b" maskUnits="userSpaceOnUse" x="0" y="0" width="28" height="18">
+      <rect width="28" height="18" fill="white"/>
+      <path
+        d="M12.5 5.1V13.7 M12.5 5.2C16.4 4.7 16.4 9.1 12.5 9.1 M12.5 9.1C17.1 8.9 17.1 13.8 12.5 13.6"
+        fill="none"
+        stroke="black"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </mask>
+  </defs>
+
+  <g mask="url(#cutout-b)" fill="black" stroke="black">
+    <path
+      d="M3 12.2Q14 1.4 25 12.2"
+      fill="none"
+      stroke-width="2.4"
+      stroke-linecap="round"
+    />
+    <circle cx="3" cy="12.2" r="2.25" stroke="none"/>
+    <circle cx="25" cy="12.2" r="2.25" stroke="none"/>
+    <path
+      d="M11.2 3.1Q12.5 1.8 14 1.8Q15.5 1.8 16.8 3.1L18.5 15.2Q18.3 16.3 16.8 16.3H11.2Q9.7 16.3 9.5 15.2Z"
+      stroke="none"
+    />
+  </g>
+</svg>

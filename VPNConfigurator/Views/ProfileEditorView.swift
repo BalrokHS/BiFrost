@@ -15,108 +15,236 @@ struct ProfileEditorView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Connection") {
-                    TextField("Name", text: $draft.name, prompt: Text("Company VPN"))
-                    Picker("Client", selection: $draft.provider) {
-                        ForEach(VPNProvider.allCases, id: \.self) { provider in
-                            Label(provider.rawValue, systemImage: provider.symbol).tag(provider)
-                        }
-                    }
-                    if draft.provider == .openVPN {
-                        LabeledContent("Imported profile", value: openVPNImportName)
-                        Text("The remote endpoint and TLS material come from the imported OpenVPN profile. Referenced credentials are ignored.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        TextField("Server", text: $draft.server, prompt: Text("vpn.example.com:443"))
-                    }
-                }
+        VStack(spacing: 0) {
+            sheetHeader
+            HairlineRule()
 
-                Section("Authentication") {
-                    Picker("Method", selection: $draft.authentication) {
-                        ForEach(availableAuthenticationMethods, id: \.self) { method in
-                            Text(method.rawValue).tag(method)
-                        }
-                    }
-                    TextField("Username", text: $draft.username)
-                    if draft.provider != .openVPN {
-                        TextField(certificateFieldTitle, text: $draft.serverCertificatePin, prompt: Text(certificateFieldPrompt))
-                    }
-                    Text("Passwords can be saved in macOS Keychain when you connect. OTP values are never saved.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if let profile = existingProfile, profile.authentication != .saml {
-                        switch savedPasswordState {
-                        case .checking:
-                            Label("Checking Keychain…", systemImage: "key")
-                                .foregroundStyle(.secondary)
-                        case .available:
-                            Button(role: .destructive) {
-                                forgetSavedPassword(profile.id)
-                            } label: {
-                                Label("Forget saved password", systemImage: "key.slash")
-                            }
-                        case .missing:
-                            Label("No saved password in Keychain", systemImage: "key.slash")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    connectionCard
+                    authenticationCard
+                    networkCard
+                    appearanceCard
                 }
+                .padding(22)
+            }
+            .scrollContentBackground(.hidden)
 
-                Section("Network") {
-                    TextField("DNS servers", text: $draft.dnsServers, prompt: Text("10.0.0.53, 10.0.0.54"))
-                    TextField("DNS domains", text: $draft.dnsDomains, prompt: Text("internal.example, corp.local"))
-                    Text("Configured domains are resolved only by this profile's DNS servers. VPN-advertised DNS is ignored. Leave both fields empty to make no DNS changes.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Appearance") {
-                    Picker("Accent", selection: $draft.accent) {
-                        ForEach(ProfileAccent.allCases, id: \.self) { accent in
-                            Label(accent.rawValue.capitalized, systemImage: "circle.fill")
-                                .foregroundStyle(accent.color)
-                                .tag(accent)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
+            HairlineRule()
+            footer
+        }
+        .frame(width: 640, height: 680)
+        .background(Theme.Palette.canvas)
+        .preferredColorScheme(.dark)
+        .alert("Profile needs attention", isPresented: Binding(
+            get: { validationMessage != nil },
+            set: { if !$0 { validationMessage = nil } }
+        )) {
+            Button("OK") { validationMessage = nil }
+        } message: {
+            Text(validationMessage ?? "")
+        }
+        .onChange(of: draft.provider) { _, provider in
+            if provider != .openFortiVPN && draft.authentication == .saml {
+                draft.authentication = .password
             }
-            .formStyle(.grouped)
-            .navigationTitle(existingProfile == nil ? "New VPN Profile" : "Edit VPN Profile")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .buttonStyle(.glassProminent)
-                }
-            }
-            .alert("Profile needs attention", isPresented: Binding(
-                get: { validationMessage != nil },
-                set: { if !$0 { validationMessage = nil } }
-            )) {
-                Button("OK") { validationMessage = nil }
-            } message: {
-                Text(validationMessage ?? "")
-            }
-            .onChange(of: draft.provider) { _, provider in
-                if provider != .openFortiVPN && draft.authentication == .saml {
-                    draft.authentication = .password
-                }
-                if provider == .openVPN {
-                    draft.authentication = .password
-                }
-            }
-            .task(id: existingProfile?.id) {
-                refreshSavedPasswordState()
+            if provider == .openVPN {
+                draft.authentication = .password
             }
         }
-        .frame(minWidth: 620, minHeight: 620)
+        .task(id: existingProfile?.id) {
+            refreshSavedPasswordState()
+        }
     }
+
+    // MARK: - Chrome
+
+    private var sheetHeader: some View {
+        HStack(spacing: 12) {
+            IconBadge(
+                symbol: draft.provider.symbol,
+                tint: draft.accent.tint,
+                highlight: draft.accent.highlight,
+                size: 36
+            )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(existingProfile == nil ? "New VPN profile" : "Edit VPN profile")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.textPrimary)
+                Text(draft.name.isEmpty ? "Unnamed" : draft.name)
+                    .font(.caption12)
+                    .foregroundStyle(Theme.Palette.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 16)
+        .animation(Theme.Motion.state, value: draft.accent)
+    }
+
+    private var footer: some View {
+        HStack(spacing: 10) {
+            Spacer()
+            Button("Cancel") { dismiss() }
+                .buttonStyle(.quiet)
+                .keyboardShortcut(.cancelAction)
+            Button("Save") { save() }
+                .buttonStyle(.accent(draft.accent.tint))
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 14)
+    }
+
+    // MARK: - Sections
+
+    private var connectionCard: some View {
+        SettingsCard("Connection", symbol: "point.3.connected.trianglepath.dotted") {
+            SettingsRow("Name") {
+                TextField("", text: $draft.name, prompt: Text("Company VPN"))
+                    .textFieldStyle(.plain)
+                    .fieldChrome()
+                    .frame(width: 280)
+            }
+
+            HairlineRule()
+
+            VStack(alignment: .leading, spacing: 9) {
+                Text("Client")
+                    .font(.body13)
+                    .foregroundStyle(Theme.Palette.textPrimary)
+
+                ChipPicker(
+                    options: VPNProvider.allCases,
+                    selection: $draft.provider,
+                    tint: draft.accent.tint,
+                    title: \.rawValue,
+                    symbol: \.symbol
+                )
+            }
+
+            HairlineRule()
+
+            if draft.provider == .openVPN {
+                SettingsRow("Imported profile") {
+                    Text(openVPNImportName)
+                        .font(.readout)
+                        .foregroundStyle(Theme.Palette.textSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                SettingsNote("The remote endpoint and TLS material come from the imported OpenVPN profile. Referenced credentials are ignored.")
+            } else {
+                SettingsRow("Server") {
+                    TextField("", text: $draft.server, prompt: Text("vpn.example.com:443"))
+                        .textFieldStyle(.plain)
+                        .fieldChrome()
+                        .frame(width: 280)
+                }
+            }
+        }
+    }
+
+    private var authenticationCard: some View {
+        SettingsCard("Authentication", symbol: "person.badge.key.fill") {
+            VStack(alignment: .leading, spacing: 9) {
+                Text("Method")
+                    .font(.body13)
+                    .foregroundStyle(Theme.Palette.textPrimary)
+
+                ChipPicker(
+                    options: availableAuthenticationMethods,
+                    selection: $draft.authentication,
+                    tint: draft.accent.tint,
+                    title: \.rawValue,
+                    symbol: nil
+                )
+            }
+
+            HairlineRule()
+
+            SettingsRow("Username") {
+                TextField("", text: $draft.username)
+                    .textFieldStyle(.plain)
+                    .fieldChrome()
+                    .frame(width: 280)
+            }
+
+            if draft.provider != .openVPN {
+                SettingsRow(certificateFieldTitle) {
+                    TextField("", text: $draft.serverCertificatePin, prompt: Text(certificateFieldPrompt))
+                        .textFieldStyle(.plain)
+                        .fieldChrome()
+                        .frame(width: 280)
+                }
+            }
+
+            SettingsNote("Passwords can be saved in macOS Keychain when you connect. OTP values are never saved.")
+
+            if let profile = existingProfile, profile.authentication != .saml {
+                HairlineRule()
+
+                switch savedPasswordState {
+                case .checking:
+                    Label("Checking Keychain…", systemImage: "key")
+                        .font(.caption12)
+                        .foregroundStyle(Theme.Palette.textTertiary)
+                case .available:
+                    HStack {
+                        Label("A password is saved in your Keychain", systemImage: "key.fill")
+                            .font(.caption12)
+                            .foregroundStyle(Theme.Palette.textSecondary)
+                        Spacer()
+                        Button("Forget") { forgetSavedPassword(profile.id) }
+                            .buttonStyle(QuietActionStyle(compact: true, destructive: true))
+                    }
+                case .missing:
+                    Label("No saved password in Keychain", systemImage: "key.slash")
+                        .font(.caption12)
+                        .foregroundStyle(Theme.Palette.textTertiary)
+                }
+            }
+        }
+    }
+
+    private var networkCard: some View {
+        SettingsCard("Network", symbol: "arrow.triangle.branch", tint: Color(hex: 0x2DC7B4)) {
+            SettingsRow("DNS servers") {
+                TextField("", text: $draft.dnsServers, prompt: Text("10.0.0.53, 10.0.0.54"))
+                    .textFieldStyle(.plain)
+                    .fieldChrome()
+                    .frame(width: 280)
+            }
+
+            SettingsRow("DNS domains") {
+                TextField("", text: $draft.dnsDomains, prompt: Text("internal.example, corp.local"))
+                    .textFieldStyle(.plain)
+                    .fieldChrome()
+                    .frame(width: 280)
+            }
+
+            SettingsNote("Configured domains are resolved only by this profile's DNS servers. VPN-advertised DNS is ignored. Leave both fields empty to make no DNS changes.")
+        }
+    }
+
+    private var appearanceCard: some View {
+        SettingsCard("Appearance", symbol: "paintpalette", tint: draft.accent.tint) {
+            SettingsRow("Accent", detail: "Tints this profile's card and the window while it is connected.") {
+                HStack(spacing: 8) {
+                    ForEach(ProfileAccent.allCases, id: \.self) { accent in
+                        AccentSwatch(accent: accent, isSelected: draft.accent == accent) {
+                            withAnimation(Theme.Motion.state) { draft.accent = accent }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Derived
 
     private var availableAuthenticationMethods: [AuthenticationMethod] {
         switch draft.provider {
@@ -138,6 +266,8 @@ struct ProfileEditorView: View {
         guard !draft.configurationPath.isEmpty else { return "Import required" }
         return URL(fileURLWithPath: draft.configurationPath).lastPathComponent
     }
+
+    // MARK: - Actions
 
     private func refreshSavedPasswordState() {
         guard let profile = existingProfile, profile.authentication != .saml else { return }
@@ -188,6 +318,86 @@ struct ProfileEditorView: View {
             controller.replace(profile)
         }
         dismiss()
+    }
+}
+
+// MARK: - Controls
+
+/// A row of selectable chips. Replaces `Picker` for the two- and three-way
+/// choices in the editor, where seeing all the options at once is worth more
+/// than the space a menu would save.
+private struct ChipPicker<Option: Hashable>: View {
+    let options: [Option]
+    @Binding var selection: Option
+    let tint: Color
+    let title: KeyPath<Option, String>
+    let symbol: KeyPath<Option, String>?
+
+    var body: some View {
+        HStack(spacing: 7) {
+            ForEach(options, id: \.self) { option in
+                let isSelected = option == selection
+                Button {
+                    withAnimation(Theme.Motion.state) { selection = option }
+                } label: {
+                    HStack(spacing: 6) {
+                        if let symbol {
+                            Image(systemName: option[keyPath: symbol])
+                                .font(.system(size: 10.5, weight: .semibold))
+                        }
+                        Text(option[keyPath: title])
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(isSelected ? Theme.Palette.textPrimary : Theme.Palette.textSecondary)
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 7)
+                    .background {
+                        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        shape.fill(isSelected ? tint.opacity(0.20) : Theme.Palette.surface)
+                            .overlay(
+                                shape.strokeBorder(
+                                    isSelected ? tint.opacity(0.5) : Theme.Palette.hairline,
+                                    lineWidth: 1
+                                )
+                            )
+                    }
+                    .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+private struct AccentSwatch: View {
+    let accent: ProfileAccent
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Circle()
+                .fill(accent.gradient)
+                .frame(width: 18, height: 18)
+                .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1))
+                .padding(3)
+                .overlay(
+                    Circle().strokeBorder(
+                        isSelected ? accent.highlight : (hovering ? Theme.Palette.hairlineBright : .clear),
+                        lineWidth: 1.5
+                    )
+                )
+                .shadow(color: accent.tint.opacity(isSelected ? 0.6 : 0), radius: 6)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(Theme.Motion.hover, value: hovering)
+        .help(accent.rawValue.capitalized)
     }
 }
 

@@ -7,7 +7,7 @@
     <key>CFBundleIdentifier</key>
     <string>com.klianos.VPNConfigurator.helper</string>
     <key>CFBundleName</key>
-    <string>VPN Configurator Helper</string>
+    <string>Bifrost Helper</string>
     <key>CFBundlePackageType</key>
     <string>BNDL</string>
     <key>CFBundleShortVersionString</key>

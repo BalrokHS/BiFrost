@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct VPNConfiguratorApp: App {
+struct BifrostApp: App {
     @State private var controller: VPNController
     @State private var helperManager: PrivilegedHelperManager
 
@@ -16,15 +16,20 @@ struct VPNConfiguratorApp: App {
             RootView()
                 .environment(controller)
                 .environment(helperManager)
-                .frame(minWidth: 920, minHeight: 620)
+                .frame(minWidth: 940, minHeight: 640)
         }
-        .defaultSize(width: 1100, height: 720)
+        .defaultSize(width: 1140, height: 760)
+        // The ambient backdrop runs edge to edge; a title bar chrome strip
+        // across the top would cut it in half.
+        .windowStyle(.hiddenTitleBar)
 
         MenuBarExtra {
             MenuBarView()
                 .environment(controller)
         } label: {
-            Image(systemName: controller.connectedProfiles.isEmpty ? "shield" : "shield.fill")
+            Image("BifrostStatusGlyph")
+                .renderingMode(.template)
+                .accessibilityLabel("Bifrost")
         }
         .menuBarExtraStyle(.window)
     }

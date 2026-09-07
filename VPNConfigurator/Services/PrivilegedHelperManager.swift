@@ -167,7 +167,7 @@ final class PrivilegedHelperManager: VPNHelperClient {
                     ?? "The helper is registered. Run a health check to verify XPC."
             }
         case .requiresApproval:
-            "An administrator must approve VPN Configurator in Login Items & Extensions."
+            "An administrator must approve Bifrost in Login Items & Extensions."
         case .notFound:
             "macOS could not validate the bundled launch daemon. Try registration to see the precise Service Management error."
         @unknown default:
@@ -539,7 +539,7 @@ final class PrivilegedHelperManager: VPNHelperClient {
         let granted: AdministratorAuthorization
         do {
             granted = try makeAdministratorAuthorization(
-                prompt: "VPN Configurator needs your approval to run \(engine.displayName) at \(executablePath) with administrator privileges."
+                prompt: "Bifrost needs your approval to run \(engine.displayName) at \(executablePath) with administrator privileges."
             )
         } catch {
             completion(.failure(error))
@@ -568,7 +568,7 @@ final class PrivilegedHelperManager: VPNHelperClient {
         let granted: AdministratorAuthorization
         do {
             granted = try makeAdministratorAuthorization(
-                prompt: "VPN Configurator needs your approval to withdraw \(engine.displayName)'s permission to run with administrator privileges."
+                prompt: "Bifrost needs your approval to withdraw \(engine.displayName)'s permission to run with administrator privileges."
             )
         } catch {
             completion(.failure(error))

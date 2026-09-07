@@ -1,4 +1,4 @@
-# VPN Configurator
+# Bifrost
 
 A personal macOS VPN manager built with SwiftUI and the native Liquid Glass APIs in macOS 26.
 
@@ -48,7 +48,7 @@ Settings › **VPN engines** lists what it found, each engine's version, and whe
 
 Finding an engine is not the same as trusting it. Package managers install into a prefix your own user account can write to, so anything running as you could replace `openvpn` — and the helper would then execute the replacement as root.
 
-Approving an engine records the SHA-256 of the executable and of every non-system library it loads (4–13 files per engine in a typical Homebrew install) into a root-owned file at `/Library/Application Support/VPN Configurator/approved-engines.json`. The helper re-measures all of them before every connection and refuses to launch anything that no longer matches. Approval prompts for administrator credentials once per engine; connections afterwards are silent.
+Approving an engine records the SHA-256 of the executable and of every non-system library it loads (4–13 files per engine in a typical Homebrew install) into a root-owned file at the legacy-compatible path `/Library/Application Support/VPN Configurator/approved-engines.json`. The helper re-measures all of them before every connection and refuses to launch anything that no longer matches. Approval prompts for administrator credentials once per engine; connections afterwards are silent.
 
 A Homebrew upgrade replaces those files, so the engine will report **Changed since approval** and ask you to approve it again. That is the intended cost of the design: an upgrade you performed looks exactly like a substitution you did not, and only you can tell them apart.
 

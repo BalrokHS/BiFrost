@@ -4,46 +4,35 @@ struct RootView: View {
     @Environment(VPNController.self) private var controller
     @Environment(PrivilegedHelperManager.self) private var helperManager
 
-    enum Destination: String, CaseIterable, Identifiable {
-        case dashboard = "Dashboard"
-        case profiles = "Profiles"
-        case settings = "Settings"
-
-        var id: Self { self }
-
-        var symbol: String {
-            switch self {
-            case .dashboard: "square.grid.2x2"
-            case .profiles: "shield.lefthalf.filled"
-            case .settings: "gearshape"
-            }
-        }
-    }
-
-    @State private var selection: Destination? = .dashboard
+    @SceneStorage("showingSettings") private var showingSettings = false
 
     var body: some View {
-        NavigationSplitView {
-            List(Destination.allCases, selection: $selection) { destination in
-                Label(destination.rawValue, systemImage: destination.symbol)
-                    .tag(destination)
-            }
-            .navigationTitle("VPN Configurator")
-            .navigationSplitViewColumnWidth(min: 190, ideal: 220)
-        } detail: {
-            switch selection ?? .dashboard {
-            case .dashboard:
-                DashboardView()
-            case .profiles:
-                ProfilesView()
-            case .settings:
-                AppSettingsView()
+        ZStack {
+            AmbientBackdrop(
+                accent: ambientAccent,
+                secondary: ambientSecondary,
+                intensity: controller.connectedProfiles.isEmpty ? 0 : 1
+            )
+            .animation(Theme.Motion.ambient, value: controller.connectedProfiles.count)
+
+            if showingSettings {
+                AppSettingsView {
+                    withAnimation(Theme.Motion.state) { showingSettings = false }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.992)))
+            } else {
+                DashboardView {
+                    withAnimation(Theme.Motion.state) { showingSettings = true }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.992)))
             }
         }
+        .preferredColorScheme(.dark)
+        .tint(Theme.Palette.brand)
         .onChange(of: helperManager.isEnabled) { _, enabled in
             if enabled { controller.reconcileSessions() }
         }
-        .alert("VPN Configurator", isPresented: Binding(
+        .alert("Bifrost", isPresented: Binding(
             get: { controller.storageErrorMessage != nil },
             set: { if !$0 { controller.storageErrorMessage = nil } }
         )) {
@@ -58,5 +47,15 @@ struct RootView: View {
             CredentialPromptView(request: request)
                 .environment(controller)
         }
+    }
+
+    private var ambientAccent: Color {
+        controller.connectedProfiles.first?.accent.tint ?? Theme.Palette.brand
+    }
+
+    private var ambientSecondary: Color {
+        let connected = controller.connectedProfiles
+        if connected.count > 1 { return connected[1].accent.tint }
+        return connected.first?.accent.highlight ?? Theme.Palette.brandBright
     }
 }

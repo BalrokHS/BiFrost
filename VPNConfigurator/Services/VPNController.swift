@@ -64,6 +64,11 @@ final class VPNController {
         runtimeStates[profile.id]?.interfaceName
     }
 
+    /// When the tunnel last reached `.connected`, for the uptime readout.
+    func connectedSince(for profile: VPNProfile) -> Date? {
+        runtimeStates[profile.id]?.connectedSince
+    }
+
     var connectedProfiles: [VPNProfile] {
         profiles.filter { state(for: $0) == .connected }
     }
@@ -321,6 +326,13 @@ final class VPNController {
         guard profiles.contains(where: { $0.id == id }) else { return }
         var runtime = runtimeStates[id] ?? VPNRuntimeState()
         change(&runtime)
+        // Stamped centrally so every path into `.connected` gets an uptime,
+        // and every path out of it drops the stale one.
+        if runtime.state == .connected {
+            runtime.connectedSince = runtime.connectedSince ?? Date()
+        } else {
+            runtime.connectedSince = nil
+        }
         runtimeStates[id] = runtime
     }
 
@@ -467,4 +479,5 @@ private enum VPNConnectionError: LocalizedError {
 private struct VPNRuntimeState: Sendable {
     var state = ConnectionState.disconnected
     var interfaceName: String?
+    var connectedSince: Date?
 }
