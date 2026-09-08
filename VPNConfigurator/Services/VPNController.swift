@@ -14,7 +14,7 @@ final class VPNController {
     @ObservationIgnored
     private var transitionTasks: [VPNProfile.ID: Task<Void, Never>] = [:]
     @ObservationIgnored
-    private let keychain = KeychainStore()
+    private let keychain: any VPNPasswordStore
     @ObservationIgnored
     private let helperManager: any VPNHelperClient
     @ObservationIgnored
@@ -26,8 +26,13 @@ final class VPNController {
     @ObservationIgnored
     private var startingProfiles: Set<VPNProfile.ID> = []
 
-    init(helperManager: any VPNHelperClient, initialProfiles: [VPNProfile]? = nil) {
+    init(
+        helperManager: any VPNHelperClient,
+        initialProfiles: [VPNProfile]? = nil,
+        keychain: any VPNPasswordStore = KeychainStore()
+    ) {
         self.helperManager = helperManager
+        self.keychain = keychain
         if let initialProfiles {
             profiles = initialProfiles
         } else {
@@ -100,14 +105,13 @@ final class VPNController {
             if profile.provider == .openVPN, profile.configurationPath == nil {
                 throw VPNConnectionError.missingOpenVPNConfiguration
             }
-            let isRetryAfterFailure = currentState == .failed
-
+            // A tunnel failure does not invalidate the password saved in Keychain.
             switch profile.authentication {
             case .saml:
                 connect(profile.id)
             case .password:
                 let hasStoredPassword = try keychain.containsPassword(for: profile.id)
-                if hasStoredPassword && !isRetryAfterFailure {
+                if hasStoredPassword {
                     connect(profile.id)
                 } else {
                     authenticationRequest = AuthenticationRequest(
@@ -126,7 +130,7 @@ final class VPNController {
                     profileID: profile.id,
                     profileName: profile.name,
                     method: profile.authentication,
-                    usesStoredPassword: hasStoredPassword && !isRetryAfterFailure
+                    usesStoredPassword: hasStoredPassword
                 )
             }
         } catch {

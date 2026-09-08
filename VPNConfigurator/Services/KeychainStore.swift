@@ -16,7 +16,14 @@ enum KeychainError: LocalizedError {
     }
 }
 
-struct KeychainStore: Sendable {
+protocol VPNPasswordStore {
+    func password(for profileID: VPNProfile.ID) throws -> String?
+    func containsPassword(for profileID: VPNProfile.ID) throws -> Bool
+    func setPassword(_ password: String, for profileID: VPNProfile.ID) throws
+    func removePassword(for profileID: VPNProfile.ID) throws
+}
+
+struct KeychainStore: VPNPasswordStore, Sendable {
     private let service = "com.klianos.VPNConfigurator.credentials"
 
     func password(for profileID: VPNProfile.ID) throws -> String? {

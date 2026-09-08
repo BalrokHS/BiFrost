@@ -23,26 +23,13 @@ struct ProfileEditorView: View {
         VStack(spacing: 0) {
             sheetHeader
             HairlineRule()
-            stepper
-            HairlineRule()
-
-            ScrollView {
-                Group {
-                    switch currentStep {
-                    case .connection: connectionCard
-                    case .authentication: authenticationCard
-                    case .network: networkCard
-                    case .appearance: appearanceCard
-                    }
-                }
-                .id(currentStep)
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
-                .frame(maxWidth: 760)
-                .padding(.horizontal, 34)
-                .padding(.vertical, 28)
-                .frame(maxWidth: .infinity)
+            if isEditing {
+                editForm
+            } else {
+                stepper
+                HairlineRule()
+                wizardContent
             }
-            .scrollContentBackground(.hidden)
 
             HairlineRule()
             footer
@@ -82,6 +69,52 @@ struct ProfileEditorView: View {
         }
     }
 
+    private var isEditing: Bool { existingProfile != nil }
+
+    private var editForm: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 18) {
+                    connectionCard.id(EditorStep.connection)
+                    authenticationCard.id(EditorStep.authentication)
+                    networkCard.id(EditorStep.network)
+                    appearanceCard.id(EditorStep.appearance)
+                }
+                .frame(maxWidth: 760)
+                .padding(.horizontal, 34)
+                .padding(.vertical, 24)
+                .frame(maxWidth: .infinity)
+            }
+            .scrollContentBackground(.hidden)
+            .onChange(of: validationMessage) { _, message in
+                guard message != nil else { return }
+                withAnimation(Theme.Motion.state) {
+                    proxy.scrollTo(currentStep, anchor: .top)
+                }
+            }
+        }
+    }
+
+    private var wizardContent: some View {
+        ScrollView {
+            Group {
+                switch currentStep {
+                case .connection: connectionCard
+                case .authentication: authenticationCard
+                case .network: networkCard
+                case .appearance: appearanceCard
+                }
+            }
+            .id(currentStep)
+            .transition(.opacity.combined(with: .move(edge: .trailing)))
+            .frame(maxWidth: 760)
+            .padding(.horizontal, 34)
+            .padding(.vertical, 28)
+            .frame(maxWidth: .infinity)
+        }
+        .scrollContentBackground(.hidden)
+    }
+
     // MARK: - Chrome
 
     private var sheetHeader: some View {
@@ -97,7 +130,9 @@ struct ProfileEditorView: View {
                 Text(existingProfile == nil ? "New VPN profile" : "Edit VPN profile")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.Palette.textPrimary)
-                Text("\(currentStep.title) · \(draft.name.isEmpty ? "Unnamed" : draft.name)")
+                Text(isEditing
+                     ? (draft.name.isEmpty ? "Unnamed" : draft.name)
+                     : "\(currentStep.title) · \(draft.name.isEmpty ? "Unnamed" : draft.name)")
                     .font(.caption12)
                     .foregroundStyle(Theme.Palette.textSecondary)
                     .lineLimit(1)
@@ -158,9 +193,11 @@ struct ProfileEditorView: View {
 
     private var footer: some View {
         HStack(spacing: 10) {
-            Text("Step \(currentStep.rawValue + 1) of \(EditorStep.allCases.count)")
-                .font(.caption12)
-                .foregroundStyle(Theme.Palette.textTertiary)
+            if !isEditing {
+                Text("Step \(currentStep.rawValue + 1) of \(EditorStep.allCases.count)")
+                    .font(.caption12)
+                    .foregroundStyle(Theme.Palette.textTertiary)
+            }
 
             Spacer()
 
@@ -168,13 +205,13 @@ struct ProfileEditorView: View {
                 .buttonStyle(.quiet)
                 .keyboardShortcut(.cancelAction)
 
-            if currentStep != .connection {
+            if !isEditing && currentStep != .connection {
                 Button("Back") { moveBack() }
                     .buttonStyle(.quiet)
             }
 
-            if currentStep == .appearance {
-                Button("Save profile") { save() }
+            if isEditing || currentStep == .appearance {
+                Button(isEditing ? "Save changes" : "Save profile") { save() }
                     .buttonStyle(.accent(draft.accent.tint))
                     .keyboardShortcut(.defaultAction)
             } else {
@@ -190,7 +227,7 @@ struct ProfileEditorView: View {
     // MARK: - Sections
 
     private var connectionCard: some View {
-        SettingsCard("Connection", symbol: "point.3.connected.trianglepath.dotted", dense: true, fillsHeight: true) {
+        SettingsCard("Connection", symbol: "point.3.connected.trianglepath.dotted", dense: true, fillsHeight: !isEditing) {
             SettingsRow("Name") {
                 TextField("", text: $draft.name, prompt: Text("Company VPN"))
                     .textFieldStyle(.plain)
@@ -244,7 +281,7 @@ struct ProfileEditorView: View {
     }
 
     private var authenticationCard: some View {
-        SettingsCard("Authentication", symbol: "person.badge.key.fill", dense: true, fillsHeight: true) {
+        SettingsCard("Authentication", symbol: "person.badge.key.fill", dense: true, fillsHeight: !isEditing) {
             VStack(alignment: .leading, spacing: 7) {
                 Text("Method")
                     .font(.body13)
@@ -306,7 +343,7 @@ struct ProfileEditorView: View {
     }
 
     private var networkCard: some View {
-        SettingsCard("Network", symbol: "arrow.triangle.branch", tint: Color(hex: 0x2DC7B4), dense: true, fillsHeight: true) {
+        SettingsCard("Network", symbol: "arrow.triangle.branch", tint: Color(hex: 0x2DC7B4), dense: true, fillsHeight: !isEditing) {
             SettingsRow("DNS servers") {
                 TextField("", text: $draft.dnsServers, prompt: Text("10.0.0.53, 10.0.0.54"))
                     .textFieldStyle(.plain)
@@ -326,7 +363,7 @@ struct ProfileEditorView: View {
     }
 
     private var appearanceCard: some View {
-        SettingsCard("Appearance", symbol: "paintpalette", tint: draft.accent.tint, dense: true, fillsHeight: true) {
+        SettingsCard("Appearance", symbol: "paintpalette", tint: draft.accent.tint, dense: true, fillsHeight: !isEditing) {
             SettingsRow("Accent", detail: "Tints this profile's card and the window while it is connected.") {
                 HStack(spacing: 8) {
                     ForEach(ProfileAccent.allCases, id: \.self) { accent in
