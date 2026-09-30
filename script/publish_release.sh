@@ -18,6 +18,13 @@ if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
   exit 1
 fi
 
+CHANGELOG="$ROOT_DIR/CHANGELOG.md"
+NOTES="$(awk '/^## \[Unreleased\]/{found=1; next} /^## /{if(found) exit} found' "$CHANGELOG")"
+if [[ -z "${NOTES//[[:space:]]/}" ]]; then
+  echo "error: CHANGELOG.md has nothing under [Unreleased]. Describe this release first." >&2
+  exit 1
+fi
+
 BIFROST_BUILD_NUMBER="$BUILD" "$ROOT_DIR/script/package_unsigned_dmg.sh"
 swift "$ROOT_DIR/script/release_signing.swift" sign "$DMG"
 
@@ -25,5 +32,17 @@ gh release create "$TAG" "$DMG" "$DMG.sig" \
   --repo "$REPO" \
   --target "$(git -C "$ROOT_DIR" rev-parse HEAD)" \
   --title "Bifrost build $BUILD" \
-  --notes "Bifrost build $BUILD. Installed copies verify the signature before installing."
+  --notes "$NOTES"
+
+# Move the released notes under the new build and commit the changelog.
+python3 - "$CHANGELOG" "$BUILD" "$(date +%F)" <<'PY'
+import sys
+path, build, day = sys.argv[1:]
+text = open(path).read()
+text = text.replace("## [Unreleased]\n", f"## [Unreleased]\n\n## Build {build} - {day}\n", 1)
+open(path, "w").write(text)
+PY
+git -C "$ROOT_DIR" add CHANGELOG.md
+git -C "$ROOT_DIR" commit -q -m "Release build $BUILD"
+git -C "$ROOT_DIR" push -q origin HEAD
 echo "Published $TAG"

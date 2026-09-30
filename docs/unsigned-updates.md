@@ -37,7 +37,7 @@ If an old app has already been overwritten and its service cannot be reached, re
 ## Publishing a release
 
 1. One time: `swift script/release_signing.swift generate` creates the Ed25519 key in the login Keychain and prints the public key. Put it in `UpdateFeed.pinnedPublicKey`. Back up the private key (`export-private`) in a password manager. **If it is lost, installed copies can never verify another update.** Rotating the key needs a manually installed release.
-2. Commit, then `./script/publish_release.sh`. It packages the image, signs it and creates the `build-<N>` release with `Bifrost-unsigned.dmg` and `Bifrost-unsigned.dmg.sig`.
+2. Describe the changes under `## [Unreleased]` in `CHANGELOG.md`, commit, then run `./script/publish_release.sh`. It refuses to run if that section is empty. It packages the image, signs it, and creates the `build-<N>` release with `Bifrost-unsigned.dmg` and `Bifrost-unsigned.dmg.sig`, using the changelog section as the release notes. Afterwards it moves those notes under a `Build <N>` heading and commits and pushes `CHANGELOG.md`.
 
 ## Release and verification
 
