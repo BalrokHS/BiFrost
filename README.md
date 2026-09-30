@@ -19,7 +19,7 @@ The current app includes:
 - Save reusable passwords in macOS Keychain.
 - Prompt for one-time passwords without persisting them.
 - Build provider-specific, secret-free launch plans for all three VPN clients.
-- Bundle a launch-daemon helper with explicit `SMAppService` registration controls.
+- Bundle an ad-hoc-signed connection service with guided `SMAppService` setup and coordinated app updates.
 - Verify helper availability over a privileged XPC Mach service.
 - Start and stop profile-based OpenFortiVPN sessions, including SAML browser handoff, through the privileged helper without external FortiVPN configuration files.
 - Start and stop imported OpenVPN profiles while supplying app-managed credentials through a root-only runtime file.
@@ -28,7 +28,7 @@ The current app includes:
 - Discover the VPN clients you installed yourself, report their versions, and run them in place once an administrator has approved their exact bytes.
 - Stream bounded process output and detect PPP, utun, and tun interfaces and provider-specific tunnel-ready states.
 - Put passwords and OTPs in a root-only temporary config instead of process arguments.
-- Ignore VPN-advertised DNS and install profile-configured split-DNS rules through macOS `/etc/resolver` only after each tunnel reports that it is connected.
+- Ignore VPN-advertised DNS and install profile-configured split-DNS rules through the macOS SystemConfiguration dynamic store (`SupplementalMatchDomains`, removed automatically if the helper dies) only after each tunnel reports that it is connected.
 
 It does **not** persist OTP values. The embedded DNS proxy remains a future milestone; current DNS handling uses profile-scoped native macOS resolver rules.
 
@@ -54,7 +54,9 @@ A Homebrew upgrade replaces those files, so the engine will report **Changed sin
 
 **What this does and does not protect against.** Pinning detects an engine or library that was replaced between connections — a backdoored build planted and waiting for you to connect. It does not stop an attacker who already runs code as your user and races the interval between measurement and `exec`; macOS offers no `fexecve`, so closing that window would require executing a copy you cannot write to. Engines are also launched with a fixed environment (no `DYLD_*`, `OPENSSL_CONF=/dev/null`, `SSL_CERT_FILE=/etc/ssl/cert.pem`) so their TLS libraries do not take configuration or trust roots from the package prefix — but a library such as p11-kit can still read module configuration from that prefix, which is inside the trust boundary you accept when you approve an engine from it.
 
-Build and launch the app with `./script/build_and_run.sh`. Health should report **Helper 0.6.2**. Starting with this version, an idle registered helper restarts automatically when the app contains a newer helper. Upgrading from 0.6.1 or older may require one final unregister/register because those helpers predate the restart command.
+Build and launch the app with `./script/build_and_run.sh`. The connection service reports **Helper 0.7.0**. Its protocol and capabilities determine compatibility independently of its display version. Health checks never restart a working service just because versions differ.
+
+Unsigned distribution is the permanent release target. See [unsigned updates](docs/unsigned-updates.md) for the lifecycle, migration, and verification workflow.
 
 OpenVPN import supports an explicit subset of directives and embedded TLS material. Profiles referencing external certificate/key files are rejected at import with instructions to export an embedded profile. Routes remain controlled by the provider and gateway.
 
@@ -67,6 +69,23 @@ See [the implementation notes](docs/review-fixes.md) for the code-review fixes t
 3. Press **Run** (`⌘R`).
 
 Build without stopping or launching the GUI: `./script/build_and_run.sh --build`.
+
+Create a universal, ad-hoc-signed Release DMG without an Apple Developer
+membership: `./script/package_unsigned_dmg.sh`. Set `BIFROST_BUILD_NUMBER` in CI to an increasing positive integer; otherwise packaging uses the current Unix timestamp. The image is written to
+`dist/Bifrost-unsigned.dmg`. Because it has no Developer ID signature or
+notarization ticket, recipients must explicitly allow the app through macOS
+Gatekeeper.
+
+An ad-hoc build has no team identifier, so the helper cannot pin its client to
+one. It pins clients to the
+designated requirement of the app bundle it was launched from, which for ad-hoc
+code is the code hash of every architecture slice. A tampered or unrelated copy
+claiming the same bundle identifier is refused. launchd already resolves the
+daemon's `BundleProgram` out of that same bundle, so pinning to it concedes no
+privilege the install location did not already carry. The packaging script also
+re-signs the app and helper without `com.apple.security.get-task-allow`, which
+Xcode adds to local builds and which would otherwise let any process of the same
+user attach to the app and drive its privileged connection.
 
 Run regression tests: `./script/test.sh`. Tests use a harmless child process and a mock helper; they do not register a daemon, connect to gateways, or change routes/DNS. Import tests create and remove their own managed configuration file without changing saved profiles or Keychain entries.
 

@@ -4,6 +4,8 @@ import SwiftUI
 struct AppSettingsView: View {
     @Environment(PrivilegedHelperManager.self) private var helperManager
 
+    @Environment(AppUpdateInstaller.self) private var updater
+
     let onClose: () -> Void
 
     @AppStorage("launchAtLogin") private var launchAtLogin = false
@@ -12,14 +14,13 @@ struct AppSettingsView: View {
     @AppStorage("engineRefreshInterval") private var engineRefreshInterval = 300
 
     @State private var inventory: EngineInventory?
-    @State private var selection: SettingsDestination = .engines
+    @State private var selection: SettingsDestination = .general
     @State private var selectedEngine: VPNEngine = .openFortiVPN
     @State private var lastRefresh = Date.now
 
     private enum SettingsDestination: String, CaseIterable, Identifiable {
         case general = "General"
         case engines = "VPN Engines"
-        case security = "Security"
 
         var id: Self { self }
 
@@ -27,7 +28,6 @@ struct AppSettingsView: View {
             switch self {
             case .general: "slider.horizontal.3"
             case .engines: "cpu"
-            case .security: "lock.shield"
             }
         }
 
@@ -160,14 +160,10 @@ struct AppSettingsView: View {
                 .padding(.horizontal, 28)
                 .padding(.vertical, 26)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        case .general, .security:
+        case .general:
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    if selection == .general {
-                        generalContent
-                    } else {
-                        securityContent
-                    }
+                    generalContent
                 }
                 .padding(.horizontal, 28)
                 .padding(.vertical, 26)
@@ -199,6 +195,8 @@ struct AppSettingsView: View {
     private var generalContent: some View {
         VStack(alignment: .leading, spacing: 18) {
             pageTitle("General", "Choose how the app behaves between sessions.")
+            helperCard
+            updateCard
 
             SettingsCard("Startup & notifications", symbol: "switch.2") {
                 SettingsRow(
@@ -322,60 +320,68 @@ struct AppSettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private var securityContent: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            pageTitle("Security", "Control the privileged service and inspect the app’s safety boundary.")
-            helperCard
-            SettingsCard("Current safety boundary", symbol: "exclamationmark.shield", tint: Color(hex: 0xE8CE63)) {
-                SettingsNote("Approving an engine pins its executable and every library it loads. The helper verifies those bytes before every connection, so package updates require approval again. OpenFortiVPN SAML handoff and profile-scoped macOS resolver rules are enabled; the embedded DNS proxy is not.")
+    private var helperCard: some View {
+        SettingsCard("VPN connection service", symbol: "network") {
+            SettingsRow(
+                helperManager.isHealthy ? "Ready" : helperManager.statusTitle,
+                detail: helperManager.isHealthy
+                    ? "Bifrost can manage VPN connections on this Mac."
+                    : helperManager.statusDetail
+            ) {
+                if helperManager.isCheckingHealth || helperManager.isChangingRegistration || helperManager.isUpdatingHelper {
+                    ProgressView().controlSize(.small)
+                }
+            }
+            switch helperManager.status {
+            case .notRegistered, .notFound:
+                Button("Enable VPN connections") { helperManager.register() }
+                    .buttonStyle(.accent)
+                    .disabled(helperManager.isChangingRegistration || updater.isBusy)
+            case .requiresApproval:
+                Button("Approve in System Settings") { helperManager.openApprovalSettings() }
+                    .buttonStyle(.accent)
+            case .enabled:
+                DisclosureGroup("Troubleshooting") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SettingsNote(helperManager.helperVersion ?? "The service has not responded yet.")
+                        HStack {
+                            Button("Check connection service") { helperManager.checkHealth() }
+                                .buttonStyle(.quiet)
+                            Button("Disable VPN connections") { helperManager.unregister() }
+                                .buttonStyle(.quietDestructive)
+                        }
+                        .disabled(helperManager.isCheckingHealth || helperManager.isChangingRegistration || updater.isBusy)
+                    }
+                    .padding(.top, 8)
+                }
+            @unknown default:
+                EmptyView()
             }
         }
     }
 
-    private var helperCard: some View {
-        SettingsCard("Privileged connection service", symbol: "lock.shield") {
-            SettingsRow(helperManager.statusTitle, detail: helperManager.statusDetail) {
-                StatusLabel(
-                    title: helperManager.isEnabled ? "Healthy" : "Attention",
-                    tone: helperManager.isEnabled ? ConnectionState.connected.tone : ConnectionState.connecting.tone
-                )
-            }
-            HairlineRule()
-            HStack(spacing: 9) {
-                switch helperManager.status {
-                case .notRegistered:
-                    Button("Register helper", systemImage: "lock.shield") { helperManager.register() }
-                        .buttonStyle(.accent)
-                        .disabled(helperManager.isChangingRegistration)
-                case .requiresApproval:
-                    Button("Open Login Items", systemImage: "gearshape") { helperManager.openApprovalSettings() }
-                        .buttonStyle(.accent)
-                case .enabled:
-                    Button("Check health", systemImage: "waveform.path.ecg") { helperManager.checkHealth() }
+    private var updateCard: some View {
+        SettingsCard("Bifrost updates", symbol: "arrow.down.app") {
+            SettingsNote(updater.detail)
+            HStack {
+                if case .ready = updater.phase {
+                    Button("Install and reopen") { updater.install() }.buttonStyle(.accent)
+                } else {
+                    Button("Choose downloaded app…") { updater.chooseRelease() }
                         .buttonStyle(.quiet)
-                        .disabled(helperManager.isCheckingHealth || helperManager.isUpdatingHelper)
-                    Button("Unregister", systemImage: "trash") { helperManager.unregister() }
-                        .buttonStyle(.quietDestructive)
-                        .disabled(helperManager.isChangingRegistration || helperManager.isUpdatingHelper)
-                case .notFound:
-                    Button("Try registration", systemImage: "lock.shield") { helperManager.register() }
-                        .buttonStyle(.accent)
-                @unknown default:
-                    EmptyView()
+                        .disabled(updater.isBusy || helperManager.isChangingRegistration)
                 }
-
-                if helperManager.isCheckingHealth || helperManager.isChangingRegistration || helperManager.isUpdatingHelper {
-                    ProgressView().controlSize(.small)
+                if updater.canCancel {
+                    Button("Cancel update") { updater.cancel() }.buttonStyle(.quiet)
                 }
-
-                Spacer()
-                Button { helperManager.refreshStatus() } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(.iconAction)
-                .help("Refresh service status")
             }
         }
+        .alert("Bifrost update", isPresented: Binding(
+            get: { updater.errorMessage != nil },
+            set: { if !$0 { updater.errorMessage = nil } }
+        )) {
+            Button("OK") { updater.errorMessage = nil }
+        } message: { Text(updater.errorMessage ?? "") }
     }
 
     private func refreshEngines() {

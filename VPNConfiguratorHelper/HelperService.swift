@@ -76,46 +76,30 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
     let queue = DispatchQueue(label: "com.klianos.VPNConfigurator.helper.sessions")
     private let trustQueue = DispatchQueue(label: "com.klianos.VPNConfigurator.helper.trust", qos: .userInitiated)
     private let resolveEngine: @Sendable (VPNEngine) throws -> ApprovedEngine
-    private let terminate: @Sendable () -> Void
     var sessions: [String: VPNSession] = [:]
     private var pendingStarts: Set<String> = []
-    private var restartRequested = false
-    private var terminationScheduled = false
+    private let now: @Sendable () -> TimeInterval
+    private var updateLeaseDeadline: TimeInterval = 0
 
     init(
         resolveEngine: @escaping @Sendable (VPNEngine) throws -> ApprovedEngine = ApprovedEngineStore.resolve,
-        terminate: @escaping @Sendable () -> Void = { _exit(EXIT_SUCCESS) }
+        now: @escaping @Sendable () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     ) {
+        self.now = now
         self.resolveEngine = resolveEngine
-        self.terminate = terminate
         super.init()
     }
 
     func ping(reply: @escaping @Sendable (String) -> Void) {
-        reply(HelperConstants.executionHelperVersion)
+        reply(HelperHandshake.current.encoded)
     }
 
-    func restartWhenIdle(reply: @escaping @Sendable (Bool, String) -> Void) {
-        let replyBox = ReplyBox<(Bool, String)> { reply($0.0, $0.1) }
+    func prepareForUpdate(_ preparing: Bool, reply: @escaping @Sendable (String) -> Void) {
         queue.async { [self] in
-            restartRequested = true
-            let hasActiveSession = sessions.values.contains { !$0.didFinish }
-            guard pendingStarts.isEmpty, !hasActiveSession else {
-                replyBox.call((false, HelperConstants.restartDeferredMessage))
-                return
-            }
-            replyBox.call((true, "The helper is restarting from the current app bundle."))
-            scheduleTerminationIfIdle()
-        }
-    }
-
-    private func scheduleTerminationIfIdle() {
-        let hasActiveSession = sessions.values.contains { !$0.didFinish }
-        guard restartRequested, !terminationScheduled, pendingStarts.isEmpty, !hasActiveSession else { return }
-        terminationScheduled = true
-        let terminate = self.terminate
-        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + .milliseconds(200)) {
-            terminate()
+            updateLeaseDeadline = preparing ? now() + 15 : 0
+            guard preparing else { reply("cancelled"); return }
+            let busy = !pendingStarts.isEmpty || sessions.values.contains { !$0.didFinish }
+            reply(busy ? "busy" : "ready")
         }
     }
 
@@ -135,7 +119,7 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         withApprovedEngine(.openFortiVPN, profileID: profileID, replyBox: replyBox) { [self] engine in
             var temporaryURLs: [URL] = []
             do {
-                let gateway = try HelperInputValidator.gateway(server)
+                let gateway = try HelperInputValidator.openFortiVPNGateway(server)
                 let trustedCertificate = try HelperInputValidator.trustedCertificate(trustedCertificate)
                 try HelperInputValidator.secret(username)
                 try HelperInputValidator.secret(password)
@@ -162,6 +146,7 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
                     "--no-dns",
                     "--pppd-use-peerdns=0"
                 ]
+                if let realm = gateway.realm { arguments.append("--realm=\(realm)") }
                 if useSAML { arguments.append("--saml-login") }
                 try launch(ProcessSpecification(
                     clientName: "OpenFortiVPN",
@@ -473,7 +458,6 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
                         logger.error("Start rejected for profile \(profileID, privacy: .public): \(error.localizedDescription, privacy: .public)")
                         replyBox.call((false, error.localizedDescription))
                     }
-                    scheduleTerminationIfIdle()
                 }
             }
         }
@@ -481,8 +465,8 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
 
     private func validateNewSession(_ profileID: String) throws {
         guard UUID(uuidString: profileID) != nil else { throw HelperFailure.invalidProfileID }
-        guard !restartRequested else {
-            throw HelperFailure.launchFailed("the helper is restarting to apply an update.")
+        guard now() >= updateLeaseDeadline else {
+            throw HelperFailure.launchFailed("an app update is waiting for VPN sessions to finish.")
         }
         if pendingStarts.contains(profileID) || sessions[profileID].map({ !$0.didFinish }) == true {
             throw HelperFailure.alreadyRunning
@@ -611,7 +595,7 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
     }
 
     private func activateResolvers(for session: VPNSession) throws {
-        session.resolverURLs = try ResolverManager.install(
+        session.resolverKey = try ResolverManager.install(
             profileID: session.profileID,
             servers: session.dnsServers,
             domains: session.dnsDomains
@@ -628,7 +612,7 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         session.outputPipe.fileHandleForReading.readabilityHandler = nil
         session.errorPipe.fileHandleForReading.readabilityHandler = nil
         for url in session.temporaryURLs { try? FileManager.default.removeItem(at: url) }
-        ResolverManager.remove(session.resolverURLs, ownedBy: session.profileID)
+        ResolverManager.remove(session.resolverKey, ownedBy: session.profileID)
         if session.stopRequested {
             session.state = .disconnected
         } else if session.state == .failed || !session.didProcessConnectedMarker || exitStatus != 0 {
@@ -638,6 +622,5 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         }
         append("\(session.clientName) exited with status \(exitStatus).\n", to: session)
         logger.info("Profile \(session.profileID, privacy: .public) exited with status \(exitStatus)")
-        scheduleTerminationIfIdle()
     }
 }

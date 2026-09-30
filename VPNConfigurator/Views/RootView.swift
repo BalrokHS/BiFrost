@@ -29,6 +29,12 @@ struct RootView: View {
         }
         .preferredColorScheme(.dark)
         .tint(Theme.Palette.brand)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            helperManager.refreshStatus()
+            if helperManager.isEnabled && !helperManager.isHealthy && !helperManager.isUpdatingHelper {
+                helperManager.checkHealth()
+            }
+        }
         .onChange(of: helperManager.isEnabled) { _, enabled in
             if enabled { controller.reconcileSessions() }
         }

@@ -17,6 +17,20 @@ enum HelperInputValidator {
         return pin
     }
 
+    static func openFortiVPNGateway(_ value: String) throws -> (host: String, port: Int, realm: String?) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
+        let endpoint = try gateway(String(parts[0]))
+        guard parts.count == 2 else { return (endpoint.host, endpoint.port, nil) }
+        guard let realm = String(parts[1]).removingPercentEncoding,
+              !realm.isEmpty,
+              !realm.contains(where: { $0.isWhitespace || $0.isNewline || "/?#\0".contains($0) }),
+              !realm.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
+            throw HelperFailure.invalidGateway("enter a single authentication realm after the slash, for example vpn.example.com:443/UniSystems.")
+        }
+        return (endpoint.host, endpoint.port, realm)
+    }
+
     static func gateway(_ value: String) throws -> (host: String, port: Int) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,

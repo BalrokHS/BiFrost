@@ -1,50 +1,59 @@
 import Foundation
+@preconcurrency import SystemConfiguration
 
+/// Installs profile-scoped split DNS through the SystemConfiguration dynamic store.
+///
+/// Entries live under `State:/Network/Service/<id>/DNS`, which configd merges into
+/// the system resolver configuration. configd drops every key a client wrote when
+/// that client's store session ends, so a helper crash cannot leave stale DNS rules.
 enum ResolverManager {
-    static func install(profileID: String, servers: [String], domains: [String]) throws -> [URL] {
-        guard !domains.isEmpty else { return [] }
-        let directoryURL = URL(fileURLWithPath: "/etc/resolver", isDirectory: true)
-        try FileManager.default.createDirectory(
-            at: directoryURL,
-            withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o755]
-        )
+    private static let servicePrefix = "com.klianos.VPNConfigurator."
+    private nonisolated(unsafe) static let store = SCDynamicStoreCreate(nil, "com.klianos.VPNConfigurator.helper" as CFString, nil, nil)
+    private static let lock = NSLock()
 
-        let marker = marker(for: profileID)
-        var installed: [URL] = []
-        do {
-            for domain in domains {
-                let url = directoryURL.appendingPathComponent(domain, isDirectory: false)
-                if FileManager.default.fileExists(atPath: url.path) {
-                    let existing = try String(contentsOf: url, encoding: .utf8)
-                    guard existing.hasPrefix(marker) else {
-                        throw HelperFailure.resolverConflict(domain)
-                    }
-                    try FileManager.default.removeItem(at: url)
-                }
+    /// Returns the installed store key, or nil when the profile defines no split DNS.
+    static func install(profileID: String, servers: [String], domains: [String]) throws -> String? {
+        guard !domains.isEmpty else { return nil }
+        lock.lock()
+        defer { lock.unlock() }
+        guard let store else { throw HelperFailure.invalidDNS("the system configuration store is unavailable.") }
 
-                var contents = marker + "domain \(domain)\n"
-                for server in servers { contents += "nameserver \(server)\n" }
-                try SecureRuntimeFiles.write(Data(contents.utf8), to: url, permissions: 0o644)
-                installed.append(url)
-            }
-            return installed
-        } catch {
-            remove(installed, ownedBy: profileID)
-            throw error
+        let key = key(for: profileID)
+        if let conflict = conflictingDomain(among: domains, excluding: key, in: store) {
+            throw HelperFailure.resolverConflict(conflict)
         }
+
+        let value: [String: Any] = [
+            "ServerAddresses": servers,
+            "SupplementalMatchDomains": domains
+        ]
+        guard SCDynamicStoreSetValue(store, key as CFString, value as CFDictionary) else {
+            throw HelperFailure.invalidDNS("the resolver rules could not be written to the system configuration store.")
+        }
+        return key
     }
 
-    static func remove(_ urls: [URL], ownedBy profileID: String) {
-        let expectedMarker = marker(for: profileID)
-        for url in urls {
-            guard let existing = try? String(contentsOf: url, encoding: .utf8),
-                  existing.hasPrefix(expectedMarker) else { continue }
-            try? FileManager.default.removeItem(at: url)
-        }
+    static func remove(_ key: String?, ownedBy profileID: String) {
+        guard let key, key == Self.key(for: profileID) else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        if let store { SCDynamicStoreRemoveValue(store, key as CFString) }
     }
 
-    private static func marker(for profileID: String) -> String {
-        "# VPN Configurator profile: \(profileID)\n"
+    static func key(for profileID: String) -> String {
+        "State:/Network/Service/\(servicePrefix)\(profileID)/DNS"
+    }
+
+    /// Another profile of this app already routes one of the requested domains.
+    private static func conflictingDomain(among domains: [String], excluding ownKey: String, in store: SCDynamicStore) -> String? {
+        let pattern = "State:/Network/Service/\(servicePrefix).*/DNS" as CFString
+        guard let keys = SCDynamicStoreCopyKeyList(store, pattern) as? [String] else { return nil }
+        let requested = Set(domains.map { $0.lowercased() })
+        for other in keys where other != ownKey {
+            guard let value = SCDynamicStoreCopyValue(store, other as CFString) as? [String: Any],
+                  let existing = value["SupplementalMatchDomains"] as? [String] else { continue }
+            if let overlap = existing.first(where: { requested.contains($0.lowercased()) }) { return overlap }
+        }
+        return nil
     }
 }

@@ -5,7 +5,7 @@ final class VPNSession: @unchecked Sendable {
     let clientName: String
     let process: Process
     let temporaryURLs: [URL]
-    var resolverURLs: [URL] = []
+    var resolverKey: String?
     let dnsServers: [String]
     let dnsDomains: [String]
     let connectedMarkers: [String]

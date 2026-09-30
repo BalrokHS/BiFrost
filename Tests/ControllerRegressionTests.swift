@@ -34,14 +34,72 @@ private struct ControllerRegressionTests {
         print("PASS: \(description)")
     }
 
+    static func updateReplacementTests() throws {
+        let files = FileManager.default
+        let root = files.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try files.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? files.removeItem(at: root) }
+        let original = root.appendingPathComponent("Bifrost.app")
+        let incoming = root.appendingPathComponent("Incoming.app")
+        let backup = root.appendingPathComponent("Previous.app")
+        try Data("old".utf8).write(to: original)
+        let replacement = AppBundleReplacement(destination: original, staged: incoming, previous: backup)
+        do { try replacement.install(); fatalError("Missing staged app was installed") }
+        catch { }
+        let restored = try String(contentsOf: original, encoding: .utf8)
+        check(restored == "old", "failed app replacement restores the previous app")
+        try Data("new".utf8).write(to: incoming)
+        try replacement.install()
+        let installed = try String(contentsOf: original, encoding: .utf8)
+        let old = try String(contentsOf: backup, encoding: .utf8)
+        check(installed == "new" && old == "old", "app replacement preserves a rollback copy")
+        try replacement.rollback()
+        let rolledBack = try String(contentsOf: original, encoding: .utf8)
+        check(rolledBack == "old", "failed relaunch can roll back the app replacement")
+        check(UnsignedRelease.buildNumber("123") == 123 && UnsignedRelease.buildNumber("0") == nil
+              && UnsignedRelease.buildNumber("1.2") == nil && UnsignedRelease.buildNumber("-1") == nil,
+              "unsigned release build numbers have unambiguous ordering")
+    }
+
     @MainActor
     static func main() throws {
-        check(!PrivilegedHelperManager.supportsAutomaticRestart("VPN Configurator Helper 0.6.1"),
-              "legacy helper is not sent an unsupported automatic-restart request")
-        check(PrivilegedHelperManager.supportsAutomaticRestart("VPN Configurator Helper 0.6.2"),
-              "current helper advertises automatic-restart support")
-        check(PrivilegedHelperManager.supportsAutomaticRestart("VPN Configurator Helper 0.10.0"),
-              "helper restart capability uses semantic numeric ordering")
+        let future = HelperHandshake(version: "future display version", protocolVersion: 1, capabilities: [HelperHandshake.fortiRealm])
+        check(HelperHandshake.decode(future.encoded)?.isCompatible == true,
+              "compatible helpers do not need identical display versions")
+        let incompatible = HelperHandshake(version: "future", protocolVersion: 2, capabilities: [])
+        check(HelperHandshake.decode(incompatible.encoded)?.isCompatible == false,
+              "unknown helper protocols fail closed")
+        check(HelperHandshake.decode("VPN Configurator Helper 99.0.0") == nil,
+              "arbitrary legacy version strings do not imply capabilities")
+        check(HelperHandshake.decode("VPN Configurator Helper 0.6.2")?.capabilities.contains(HelperHandshake.fortiRealm) == false,
+              "legacy helpers cannot receive unsupported realm operations")
+        check(HelperHandshake.decode("VPN Configurator Helper 0.6.3")?.capabilities.contains(HelperHandshake.updatePreparation) == false,
+              "legacy helpers cannot receive update-preparation requests")
+        check(HelperHandshake.decode(HelperHandshake.current.encoded) == HelperHandshake.current,
+              "current handshake preserves protocol and capabilities")
+        try updateReplacementTests()
+        if let path = ProcessInfo.processInfo.environment["BIFROST_TEST_RELEASE"] {
+            let release = URL(fileURLWithPath: path)
+            let build = try UnsignedRelease.validate(release, newerThan: 1)
+            check(build > 1, "packaged unsigned release passes real signature and metadata validation")
+            do {
+                _ = try UnsignedRelease.validate(release, newerThan: build)
+                fatalError("Accepted a non-increasing update")
+            } catch is AppUpdateFailure { }
+            let copy = FileManager.default.temporaryDirectory.appendingPathComponent("Bifrost-tamper-\(UUID().uuidString).app")
+            try FileManager.default.copyItem(at: release, to: copy)
+            defer { try? FileManager.default.removeItem(at: copy) }
+            let binary = copy.appendingPathComponent("Contents/Resources/VPNConfiguratorHelper")
+            let handle = try FileHandle(forWritingTo: binary)
+            try handle.seekToEnd()
+            try handle.write(contentsOf: Data("tampered".utf8))
+            try handle.close()
+            do {
+                _ = try UnsignedRelease.validate(copy, newerThan: 1)
+                fatalError("Accepted a tampered helper")
+            } catch is AppUpdateFailure { }
+            check(true, "damaged releases and non-increasing updates are refused")
+        }
 
         let helper = MockHelper()
         let profile = VPNProfile(name: "Fixture", server: "example.com", provider: .openFortiVPN, authentication: .saml)
@@ -166,6 +224,13 @@ private struct ControllerRegressionTests {
         check(imported.server == "vpn.example.com:1194" && imported.username == "test-user", "import parses canonical endpoint and quoted credential filename")
         let stored = try String(contentsOfFile: imported.configurationPath!, encoding: .utf8)
         check(!stored.contains("credentials file") && !stored.contains("secret-password"), "managed import contains no credential reference or password")
+        let fortiSource = source.deletingLastPathComponent().appendingPathComponent("realm.conf")
+        try "host = 193.41.150.166\nport = 443\nrealm = UniSystems\nsaml-login = 8020\n".write(to: fortiSource, atomically: true, encoding: .utf8)
+        let fortiProfile = try ConfigurationImporter.profile(from: fortiSource)
+        check(fortiProfile.server == "193.41.150.166:443/UniSystems" && fortiProfile.authentication == .saml,
+              "Forti imports preserve authentication realm and SAML")
+        let restoredForti = try JSONDecoder().decode(VPNProfile.self, from: JSONEncoder().encode(fortiProfile))
+        check(restoredForti.server == fortiProfile.server, "Forti realm survives profile persistence")
         print("All controller and importer regression tests passed.")
     }
 }

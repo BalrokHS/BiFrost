@@ -59,18 +59,6 @@ private final class XPCResultBridge<Value: Sendable>: @unchecked Sendable {
 
 }
 
-private final class RegistrationResultBridge: @unchecked Sendable {
-    let deliver: @Sendable (Result<Void, Error>) -> Void
-
-    init(deliver: @escaping @Sendable (Result<Void, Error>) -> Void) {
-        self.deliver = deliver
-    }
-
-    func handle(error: Error?) {
-        deliver(error.map(Result.failure) ?? .success(()))
-    }
-}
-
 /// The controller depends on a transport contract so lifecycle behavior can be
 /// tested without registering a daemon or changing the machine's network.
 @MainActor
@@ -131,16 +119,18 @@ final class PrivilegedHelperManager: VPNHelperClient {
     var errorMessage: String?
     var isCheckingHealth = false
     var isChangingRegistration = false
+    private(set) var handshake: HelperHandshake?
     var isUpdatingHelper = false
 
     @ObservationIgnored
     private var operationConnections: [UUID: NSXPCConnection] = [:]
-    @ObservationIgnored
-    private var helperUpdateWaiters: [(@MainActor (Result<Void, Error>) -> Void)] = []
 
     init() {
         refreshStatus()
-        if isEnabled { checkHealth() }
+        if UserDefaults.standard.string(forKey: "pendingHelperRegistration") == Bundle.main.bundlePath {
+            UserDefaults.standard.removeObject(forKey: "pendingHelperRegistration")
+            register()
+        } else if isEnabled { checkHealth() }
     }
 
     var statusTitle: String {
@@ -148,12 +138,16 @@ final class PrivilegedHelperManager: VPNHelperClient {
         case .notRegistered: "Not installed"
         case .enabled: "Enabled"
         case .requiresApproval: "Awaiting approval"
-        case .notFound: "Not available in this build"
+        case .notFound: "Setup required"
         @unknown default: "Unknown"
         }
     }
 
     var isEnabled: Bool { status == .enabled }
+    var isHealthy: Bool {
+        isEnabled && handshake?.isCompatible == true
+            && !isCheckingHealth && !isUpdatingHelper
+    }
 
     var statusDetail: String {
         switch status {
@@ -161,7 +155,7 @@ final class PrivilegedHelperManager: VPNHelperClient {
             "The privileged connection service has not been registered."
         case .enabled:
             if isUpdatingHelper {
-                "The helper is restarting to use the version embedded in this app."
+                "An app update is waiting for the connection service to become idle."
             } else {
                 helperVersion.map { "The helper is responding (\($0))." }
                     ?? "The helper is registered. Run a health check to verify XPC."
@@ -169,7 +163,7 @@ final class PrivilegedHelperManager: VPNHelperClient {
         case .requiresApproval:
             "An administrator must approve Bifrost in Login Items & Extensions."
         case .notFound:
-            "macOS could not validate the bundled launch daemon. Try registration to see the precise Service Management error."
+            "Enable the bundled connection service to allow Bifrost to manage VPNs. macOS may ask for approval."
         @unknown default:
             "macOS returned an unknown helper status."
         }
@@ -177,16 +171,19 @@ final class PrivilegedHelperManager: VPNHelperClient {
 
     func refreshStatus() {
         status = service.status
-        if status != .enabled { helperVersion = nil }
+        if status != .enabled { helperVersion = nil; handshake = nil }
     }
 
     func register() {
-        guard !isChangingRegistration else { return }
+        guard !isChangingRegistration, !isUpdatingHelper else { return }
         isChangingRegistration = true
         defer { isChangingRegistration = false }
         do {
+            errorMessage = nil
             try service.register()
             refreshStatus()
+            if isEnabled { checkHealth() }
+            if status == .requiresApproval { openApprovalSettings() }
         } catch {
             refreshStatus()
 
@@ -204,22 +201,95 @@ final class PrivilegedHelperManager: VPNHelperClient {
         }
     }
 
+    /// An ordinary removal uses the same idle gate as an update. An unreachable
+    /// service is never assumed idle: it may still own tunnels and resolver files.
     func unregister() {
-        guard !isChangingRegistration else { return }
+        guard !isChangingRegistration, !isUpdatingHelper else { return }
         isChangingRegistration = true
-
-        let bridge = RegistrationResultBridge { [weak self] result in
-            Task { @MainActor in
-                guard let self else { return }
-                self.isChangingRegistration = false
-                self.helperVersion = nil
-                self.refreshStatus()
-                if case .failure(let error) = result {
-                    self.errorMessage = self.detailedMessage(for: error)
+        Task {
+            defer { isChangingRegistration = false }
+            do {
+                guard try await prepareUpdate() else {
+                    await cancelUpdatePreparation()
+                    throw HelperClientError(message: "Disconnect VPN sessions before disabling the connection service.")
                 }
+                try await unregisterPreparedService()
+            } catch {
+                await cancelUpdatePreparation()
+                errorMessage = error.localizedDescription
             }
         }
-        service.unregister(completionHandler: bridge.handle(error:))
+    }
+
+    func prepareUpdate() async throws -> Bool {
+        refreshStatus()
+        if status == .notRegistered { return true }
+        guard status == .enabled else {
+            throw HelperClientError(message: "Approve the connection service in Login Items before updating it.")
+        }
+        let information = try await readHandshake()
+        guard information.isCompatible,
+              information.capabilities.contains(HelperHandshake.updatePreparation) else {
+            throw HelperClientError(message: "This older connection service cannot safely prepare an app update. Use the previous Bifrost app to disconnect and unregister it once, then enable the service here.")
+        }
+        let state: String = try await operation { proxy, reply in
+            proxy.prepareForUpdate(true) { reply(.success($0)) }
+        }
+        guard state == "ready" || state == "busy" else {
+            throw HelperClientError(message: "The connection service returned an invalid update state.")
+        }
+        return state == "ready"
+    }
+
+    func cancelUpdatePreparation() async {
+        guard handshake?.capabilities.contains(HelperHandshake.updatePreparation) == true else { return }
+        let _: String? = try? await operation { proxy, reply in
+            proxy.prepareForUpdate(false) { reply(.success($0)) }
+        }
+    }
+
+    func unregisterPreparedService() async throws {
+        if service.status == .notRegistered { return }
+        // Renew immediately before removal, after any lengthy staged-app checks.
+        guard try await prepareUpdate() else {
+            throw HelperClientError(message: "A VPN session started before installation. Try the update again after it finishes.")
+        }
+        let renewal = Task {
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: .seconds(5))
+                    _ = try await prepareUpdate()
+                } catch { return }
+            }
+        }
+        defer { renewal.cancel() }
+        try await service.unregister()
+        handshake = nil
+        helperVersion = nil
+        refreshStatus()
+        guard status == .notRegistered else {
+            throw HelperClientError(message: "macOS has not finished removing the old connection service. The app update has not been installed.")
+        }
+    }
+
+    private func operation<Value: Sendable>(
+        _ request: (HelperXPCProtocol, @escaping @Sendable (Result<Value, Error>) -> Void) -> Void
+    ) async throws -> Value {
+        try await withCheckedThrowingContinuation { continuation in
+            performOperation(timeout: .seconds(5), completion: { continuation.resume(with: $0) }, request: request)
+        }
+    }
+
+    private func readHandshake() async throws -> HelperHandshake {
+        let value: String = try await operation { proxy, reply in
+            proxy.ping { reply(.success($0)) }
+        }
+        guard let information = HelperHandshake.decode(value) else {
+            throw HelperClientError(message: "The connection service uses an unsupported protocol. Update the connection service before starting a VPN.")
+        }
+        handshake = information
+        helperVersion = information.version
+        return information
     }
 
     func openApprovalSettings() {
@@ -230,6 +300,7 @@ final class PrivilegedHelperManager: VPNHelperClient {
         guard !isCheckingHealth else { return }
         isCheckingHealth = true
         helperVersion = nil
+        handshake = nil
         verifyExecutionHelper { [weak self] result in
             guard let self else { return }
             isCheckingHealth = false
@@ -254,7 +325,7 @@ final class PrivilegedHelperManager: VPNHelperClient {
         dnsDomains: [String],
         completion: @escaping @MainActor (Result<String, Error>) -> Void
     ) {
-        verifyExecutionHelper { [weak self] result in
+        verifyExecutionHelper(requiredCapabilities: server.contains("/") ? [HelperHandshake.fortiRealm] : []) { [weak self] result in
             guard let self else { return }
             switch result {
             case .success:
@@ -370,115 +441,27 @@ final class PrivilegedHelperManager: VPNHelperClient {
     }
 
     private func verifyExecutionHelper(
+        requiredCapabilities: Set<String> = [],
         completion: @escaping @MainActor (Result<Void, Error>) -> Void
     ) {
-        performOperation(completion: { [weak self] (result: Result<String, Error>) in
-            guard let self else { return }
-            switch result {
-            case .success(let version):
-                self.helperVersion = version
-                guard version == HelperConstants.executionHelperVersion else {
-                    guard Self.supportsAutomaticRestart(version) else {
-                        completion(.failure(self.updateFailure(
-                            installedVersion: version,
-                            reason: "this helper predates the safe restart protocol."
-                        )))
-                        return
-                    }
-                    self.refreshExecutionHelper(completion: completion)
-                    return
+        guard !isUpdatingHelper else {
+            completion(.failure(HelperClientError(message: "An app update is waiting for VPN sessions to finish. Cancel the update to start a new connection.")))
+            return
+        }
+        Task {
+            do {
+                let information = try await readHandshake()
+                guard information.isCompatible,
+                      requiredCapabilities.isSubset(of: information.capabilities) else {
+                    throw HelperClientError(message: "The connection service does not support this operation. Install the current Bifrost update from Settings.")
                 }
                 completion(.success(()))
-            case .failure(let error):
+            } catch {
+                handshake = nil
+                helperVersion = nil
                 completion(.failure(error))
             }
-        }, request: { proxy, reply in
-            proxy.ping { version in reply(.success(version)) }
-        })
-    }
-
-    private func refreshExecutionHelper(
-        completion: @escaping @MainActor (Result<Void, Error>) -> Void
-    ) {
-        helperUpdateWaiters.append(completion)
-        guard !isUpdatingHelper else { return }
-        isUpdatingHelper = true
-
-        performOperation(timeout: .seconds(3), completion: { [weak self] (result: Result<String, Error>) in
-            guard let self else { return }
-            switch result {
-            case .success:
-                self.waitForCurrentExecutionHelper(attemptsRemaining: 12)
-            case .failure(let error):
-                if error.localizedDescription == HelperConstants.restartDeferredMessage {
-                    self.finishHelperUpdate(.failure(error))
-                } else {
-                    // The reply and connection invalidation can race when the
-                    // helper exits, so look for the new process before failing.
-                    self.waitForCurrentExecutionHelper(attemptsRemaining: 12)
-                }
-            }
-        }, request: { proxy, reply in
-            proxy.restartWhenIdle { success, message in
-                reply(success ? .success(message) : .failure(HelperClientError(message: message)))
-            }
-        })
-    }
-
-    private func waitForCurrentExecutionHelper(attemptsRemaining: Int) {
-        performOperation(timeout: .seconds(2), completion: { [weak self] (result: Result<String, Error>) in
-            guard let self else { return }
-            if case .success(let version) = result,
-               version == HelperConstants.executionHelperVersion {
-                self.helperVersion = version
-                self.finishHelperUpdate(.success(()))
-                return
-            }
-
-            guard attemptsRemaining > 1 else {
-                let reason: String
-                switch result {
-                case .success(let version):
-                    reason = "launchd continued to run \(version)."
-                case .failure(let error):
-                    reason = error.localizedDescription
-                }
-                self.finishHelperUpdate(.failure(self.updateFailure(
-                    installedVersion: self.helperVersion ?? "an older helper",
-                    reason: reason
-                )))
-                return
-            }
-
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .milliseconds(250))
-                self?.waitForCurrentExecutionHelper(attemptsRemaining: attemptsRemaining - 1)
-            }
-        }, request: { proxy, reply in
-            proxy.ping { reply(.success($0)) }
-        })
-    }
-
-    private func finishHelperUpdate(_ result: Result<Void, Error>) {
-        isUpdatingHelper = false
-        let waiters = helperUpdateWaiters
-        helperUpdateWaiters.removeAll()
-        for waiter in waiters { waiter(result) }
-    }
-
-    private func updateFailure(installedVersion: String, reason: String) -> HelperClientError {
-        HelperClientError(message: """
-        The running service is \(installedVersion), but \(HelperConstants.executionHelperVersion) is required. Automatic refresh failed: \(reason)
-
-        As a fallback, unregister it in Settings, wait for Not installed, then register it again. This fallback is expected once when upgrading from a helper that predates automatic refresh.
-        """)
-    }
-
-    nonisolated static func supportsAutomaticRestart(_ version: String) -> Bool {
-        guard let token = version.split(separator: " ").last else { return false }
-        let components = token.split(separator: ".").compactMap { Int($0) }
-        guard components.count == 3 else { return false }
-        return components.lexicographicallyPrecedes([0, 6, 2]) == false
+        }
     }
 
     func stopVPN(

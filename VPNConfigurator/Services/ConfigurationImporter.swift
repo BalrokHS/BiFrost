@@ -220,7 +220,9 @@ enum ConfigurationImporter {
             throw ConfigurationImportError.missingServer
         }
 
+        let realm = values["realm"].flatMap { $0.isEmpty ? nil : $0 }
         let server = host + (values["port"].map { ":\($0)" } ?? "")
+            + (realm.map { "/\($0)" } ?? "")
         // The openfortivpn config value is a callback port (normally 8020), so the
         // presence of the option enables SAML; it is not a Boolean setting.
         let usesSAML = values["saml-login"] != nil

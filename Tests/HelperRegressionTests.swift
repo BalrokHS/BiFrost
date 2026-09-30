@@ -1,7 +1,15 @@
 import Foundation
+import Security
 
 // Compiled with the helper service sources by script/test.sh. No root privileges,
-// VPN gateway, /etc/resolver changes, or XPC registration are involved.
+// VPN gateway, DNS changes, or XPC registration are involved.
+private final class TestClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var time: TimeInterval = 100
+    var value: TimeInterval { lock.withLock { time } }
+    func advance(_ delta: TimeInterval) { lock.withLock { time += delta } }
+}
+
 private func check(_ condition: @autoclosure () -> Bool, _ description: String) {
     guard condition() else { fatalError("FAIL: \(description)") }
     print("PASS: \(description)")
@@ -149,39 +157,54 @@ static func trustWorkDoesNotBlockSessionQueue() {
     }
     check(statusReplied.wait(timeout: .now() + 1) == .success,
           "engine verification does not block the session queue")
+    let preparation = DispatchSemaphore(value: 0)
+    helper.prepareForUpdate(true) { state in
+        check(state == "busy", "pending engine validation prevents app replacement")
+        preparation.signal()
+    }
+    check(preparation.wait(timeout: .now() + 1) == .success, "pending-launch preparation replies")
     releaseTrust.signal()
     check(startReplied.wait(timeout: .now() + 2) == .success, "engine verification completion replies")
 }
 
-static func idleRestartTests() {
-    let activeTermination = DispatchSemaphore(value: 0)
-    let activeHelper = HelperService(terminate: { activeTermination.signal() })
-    let activeSession = newSession()
-    activeHelper.queue.sync { activeHelper.sessions[activeSession.profileID] = activeSession }
-    let activeReply = DispatchSemaphore(value: 0)
-    activeHelper.restartWhenIdle { success, message in
-        check(!success && message.contains("active VPN sessions"),
-              "helper update is deferred while a VPN session is active")
-        activeReply.signal()
+static func updatePreparationTests() {
+    let clock = TestClock()
+    let helper = HelperService(resolveEngine: { _ in
+        throw HelperFailure.untrustedExecutable("test resolver reached")
+    }, now: { clock.value })
+    let session = newSession()
+    helper.queue.sync { helper.sessions[session.profileID] = session }
+    func prepare(_ preparing: Bool, expected: String) {
+        let reply = DispatchSemaphore(value: 0)
+        helper.prepareForUpdate(preparing) { state in
+            check(state == expected, "update preparation reports \(expected)")
+            reply.signal()
+        }
+        check(reply.wait(timeout: .now() + 1) == .success, "update preparation replies")
     }
-    check(activeReply.wait(timeout: .now() + 1) == .success, "active-session restart request replies")
-    check(activeTermination.wait(timeout: .now() + .milliseconds(300)) == .timedOut,
-          "active-session restart does not terminate the helper")
-    activeHelper.queue.sync { activeHelper.finish(session: activeSession, exitStatus: 0) }
-    check(activeTermination.wait(timeout: .now() + 1) == .success,
-          "queued helper update restarts automatically after the active session finishes")
-
-    let idleTermination = DispatchSemaphore(value: 0)
-    let idleHelper = HelperService(terminate: { idleTermination.signal() })
-    let idleReply = DispatchSemaphore(value: 0)
-    idleHelper.restartWhenIdle { success, _ in
-        check(success, "idle helper accepts an automatic update restart")
-        idleReply.signal()
+    func start(expect message: String) {
+        let reply = DispatchSemaphore(value: 0)
+        helper.startOpenVPN(profileID: UUID().uuidString, configuration: "client", username: "u", password: "p", dnsServers: [], dnsDomains: []) { success, detail in
+            check(!success && detail.contains(message), "update lease controls new launches: \(message)")
+            reply.signal()
+        }
+        check(reply.wait(timeout: .now() + 1) == .success, "launch gate replies")
     }
-    check(idleReply.wait(timeout: .now() + 1) == .success, "idle restart replies before termination")
-    check(idleTermination.wait(timeout: .now() + 1) == .success,
-          "idle helper terminates after acknowledging restart")
+    prepare(true, expected: "busy")
+    start(expect: "waiting for VPN sessions")
+    helper.queue.sync {
+        check(!session.didFinish, "preparation preserves the active session")
+        helper.finish(session: session, exitStatus: 0)
+    }
+    prepare(true, expected: "ready")
+    start(expect: "waiting for VPN sessions")
+    prepare(false, expected: "cancelled")
+    start(expect: "test resolver reached")
+    prepare(true, expected: "ready")
+    clock.advance(16)
+    start(expect: "test resolver reached")
 }
+
 
 }
 
@@ -371,15 +394,73 @@ private func authorizationTests() {
     check(true, "malformed administrator authorization tokens are rejected")
 }
 
+private func clientRequirementTests() {
+    check(
+        ClientRequirement.teamAnchored(team: "TEAMID", identifier: "com.example.app")
+            == "anchor apple generic and certificate leaf[subject.OU] = \"TEAMID\" and identifier \"com.example.app\"",
+        "a signed client is pinned to the developer team and bundle identifier"
+    )
+    // An unreadable bundle must pin nothing, so the connection is refused rather
+    // than falling back to a requirement any same-identifier app would satisfy.
+    check(
+        ClientRequirement.codeHashPinned(designatedRequirement: "", identifier: "com.example.app") == nil,
+        "an unreadable app bundle pins nothing and is therefore refused"
+    )
+    let pinned = ClientRequirement.codeHashPinned(
+        designatedRequirement: "cdhash H\"aa\" or cdhash H\"bb\"",
+        identifier: "com.example.app"
+    )
+    check(
+        pinned == "identifier \"com.example.app\" and (cdhash H\"aa\" or cdhash H\"bb\")",
+        "an ad-hoc client is pinned to every architecture slice of the app bundle shipping the helper"
+    )
+    // The whole ad-hoc path collapses to a rejection if this text does not
+    // compile, so the exact syntax is worth asserting.
+    var requirement: SecRequirement?
+    check(
+        ClientRequirement.codeHashPinned(
+            designatedRequirement: "cdhash H\"b089788d0bc67433e071dd2b74a59229cd183e09\""
+        ).map { SecRequirementCreateWithString($0 as CFString, [], &requirement) } == errSecSuccess,
+        "the code-hash pin compiles as a real code-signing requirement"
+    )
+    check(
+        HelperCodeIdentity.designatedRequirementText(ofBundleAt: URL(fileURLWithPath: "/nonexistent.app")) == nil,
+        "a missing app bundle yields no requirement"
+    )
+}
+
 discoveryTests()
 try approvalTests()
 authorizationTests()
+clientRequirementTests()
 openFortiVPNConfigurationTests()
 try parserTests()
 HelperService.stateTests()
 try HelperService.duplicateStartTests()
 HelperService.trustWorkDoesNotBlockSessionQueue()
-HelperService.idleRestartTests()
+HelperService.updatePreparationTests()
 try trustTests()
 try orphanedArtifactCleanupTests()
+
+// Forti gateways carry an optional realm without relaxing other engines' validation.
+do {
+    let gateway = try HelperInputValidator.openFortiVPNGateway("193.41.150.166:443/UniSystems")
+    check(gateway.host == "193.41.150.166" && gateway.port == 443 && gateway.realm == "UniSystems", "Forti gateway separates endpoint and case-sensitive realm")
+    let plain = try HelperInputValidator.openFortiVPNGateway("vpn.example.com")
+    check(plain.port == 443 && plain.realm == nil, "Forti gateways without realms keep existing defaults")
+    let encoded = try HelperInputValidator.openFortiVPNGateway("vpn.example.com:8443/Uni%53ystems")
+    check(encoded.port == 8443 && encoded.realm == "UniSystems", "Forti realm percent escapes are decoded")
+    for invalid in ["", "vpn.example.com/", "vpn.example.com/a/b", "vpn.example.com/a?b", "vpn.example.com/%00", "vpn.example.com/%0A", "vpn.example.com/%2F", "vpn.example.com:99999/realm"] {
+        do {
+            _ = try HelperInputValidator.openFortiVPNGateway(invalid)
+            fatalError("Accepted invalid Forti gateway: \(invalid)")
+        } catch is HelperFailure { }
+    }
+    do {
+        _ = try HelperInputValidator.gateway("vpn.example.com/UniSystems")
+        fatalError("Generic gateway accepted a realm")
+    } catch is HelperFailure { }
+    check(true, "invalid realms rejected and generic gateway validation stays strict")
+} catch { fatalError("Forti gateway regression: \(error)") }
+
 print("All helper regression tests passed.")

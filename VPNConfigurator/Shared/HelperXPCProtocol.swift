@@ -2,11 +2,53 @@ import Foundation
 
 enum HelperConstants {
     static let machServiceName = "com.klianos.VPNConfigurator.helper"
-    static let launchDaemonPlistName = "com.klianos.VPNConfigurator.helper.plist"
+    static var launchDaemonPlistName: String {
+        Bundle.main.object(forInfoDictionaryKey: "BifrostHelperDaemonPlist") as? String
+            ?? "com.klianos.VPNConfigurator.helper.plist"
+    }
     static let mainAppIdentifier = "com.klianos.VPNConfigurator"
     static let signingTeamIdentifier = "68SX8JZQFD"
-    static let executionHelperVersion = "VPN Configurator Helper 0.6.2"
-    static let restartDeferredMessage = "The helper update is queued until active VPN sessions disconnect."
+    static let executionHelperVersion = "VPN Configurator Helper 0.7.0"
+}
+
+/// The wire contract is independent of the product's display/build versions.
+/// Unknown protocols fail closed; a missing feature blocks only that feature.
+struct HelperHandshake: Codable, Equatable, Sendable {
+    static let protocolVersion = 1
+    static let updatePreparation = "update-preparation-v1"
+    static let fortiRealm = "forti-realm"
+    let version: String
+    let protocolVersion: Int
+    let capabilities: Set<String>
+
+    static let current = HelperHandshake(
+        version: HelperConstants.executionHelperVersion,
+        protocolVersion: protocolVersion,
+        capabilities: [updatePreparation, fortiRealm]
+    )
+
+    var isCompatible: Bool { protocolVersion == Self.protocolVersion }
+
+    var encoded: String {
+        guard let data = try? JSONEncoder().encode(self) else { return "{}" }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    static func decode(_ value: String) -> HelperHandshake? {
+        if let handshake = try? JSONDecoder().decode(Self.self, from: Data(value.utf8)) {
+            return handshake
+        }
+        // Explicit migration support for shipped helpers, never inferred from
+        // an arbitrary future version string. They cannot prepare an app update.
+        switch value {
+        case "VPN Configurator Helper 0.6.2":
+            return HelperHandshake(version: value, protocolVersion: 1, capabilities: [])
+        case "VPN Configurator Helper 0.6.3":
+            return HelperHandshake(version: value, protocolVersion: 1, capabilities: [fortiRealm])
+        default:
+            return nil
+        }
+    }
 }
 
 enum HelperSessionState: String, Codable, Sendable {
@@ -21,10 +63,9 @@ enum HelperSessionState: String, Codable, Sendable {
 @objc protocol HelperXPCProtocol {
     func ping(reply: @escaping @Sendable (String) -> Void)
 
-    /// Exits after replying when no VPN launch or session is active. Because
-    /// launchd resolves BundleProgram from the registered app, the next XPC
-    /// request starts the helper embedded in the current app bundle.
-    func restartWhenIdle(reply: @escaping @Sendable (Bool, String) -> Void)
+    /// A short renewable lease blocks new connections while the app waits for
+    /// sessions and pending launches to finish. Only the app unregisters the service.
+    func prepareForUpdate(_ preparing: Bool, reply: @escaping @Sendable (String) -> Void)
 
     func startOpenFortiVPN(
         profileID: String,

@@ -271,10 +271,13 @@ struct ProfileEditorView: View {
                 SettingsNote("Choose an OpenVPN configuration here. Its endpoint and TLS material are stored securely; referenced credentials are ignored.")
             } else {
                 SettingsRow("Server") {
-                    TextField("", text: $draft.server, prompt: Text("vpn.example.com:443"))
+                    TextField("", text: $draft.server, prompt: Text(draft.provider == .openFortiVPN ? "vpn.example.com:443/realm" : "vpn.example.com:443"))
                         .textFieldStyle(.plain)
                         .fieldChrome()
                         .frame(maxWidth: 360)
+                }
+                if draft.provider == .openFortiVPN {
+                    SettingsNote("For an authentication realm, append /realm to the server, for example 193.41.150.166:443/UniSystems.")
                 }
             }
         }

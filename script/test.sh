@@ -32,6 +32,7 @@ swiftc -swift-version 6 -parse-as-library \
   "$ROOT_DIR/VPNConfigurator/Shared/OpenVPNConfiguration.swift" \
   "$ROOT_DIR/VPNConfigurator/Shared/EngineDiscovery.swift" \
   "$ROOT_DIR/VPNConfigurator/Services/PrivilegedHelperManager.swift" \
+  "$ROOT_DIR/VPNConfigurator/Services/AppUpdateInstaller.swift" \
   "$ROOT_DIR/VPNConfigurator/Services/VPNController.swift" \
   "$ROOT_DIR/VPNConfigurator/Services/ProfileStore.swift" \
   "$ROOT_DIR/VPNConfigurator/Services/ConfigurationImporter.swift" \

@@ -40,6 +40,6 @@ The privileged helper is also split by responsibility. `main.swift` is only the 
 
 Run `./script/test.sh` for regression checks of option spellings, credentials, TLS references, canonicalization, duplicate starts, SAML transitions, ownership checks, Mach-O parsing, startup recovery, stale status replies, and disconnect/start races. Tests do not require VPN engines or administrator privileges. Import tests remove their own managed files.
 
-Run `./script/build_and_run.sh --build` to build both targets without stopping or launching the GUI. The helper execution version is now 0.6.2. When no VPN session or launch is active, version mismatch recovery asks the registered helper to exit and waits for launchd to start the helper embedded in the current app. Active tunnels defer the restart. A helper older than 0.6.2 cannot receive this new command and may require the manual unregister/register fallback once.
+Run `./script/build_and_run.sh --build` to build both targets without stopping or launching the GUI. The old version-mismatch restart flow has been replaced by the [unsigned app update lifecycle](unsigned-updates.md).
 
 These checks do not establish real-gateway interoperability, distribution readiness, or an end-to-end protected provider installation. No helper registration, system permissions, routes, or DNS settings are changed by this verification pass.
