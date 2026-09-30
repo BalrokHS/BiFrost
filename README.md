@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.png" alt="Bifrost" width="480"></p>
+
 # Bifrost
 
 A personal macOS VPN manager built with SwiftUI and the native Liquid Glass APIs in macOS 26.
