@@ -66,7 +66,7 @@ The tests use a harmless child process and a mock helper. They do not register a
 ./script/publish_release.sh
 ```
 
-Builds the universal ad-hoc-signed DMG, signs it with the update key in your Keychain, creates the GitHub release with notes from [CHANGELOG.md](CHANGELOG.md), and stamps the changelog. Key setup and the release checklist are in [Updates](docs/unsigned-updates.md#publishing-a-release).
+Builds the universal ad-hoc-signed DMG, signs it with the update key in your Keychain, creates the GitHub release with notes from [CHANGELOG.md](CHANGELOG.md), and stamps the changelog. The same script runs in CI: **Actions → Release → Run workflow**. Key setup and the release checklist are in [Updates](docs/unsigned-updates.md#publishing-a-release).
 
 ## Project layout
 

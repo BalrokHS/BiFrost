@@ -1,6 +1,7 @@
 #!/usr/bin/env swift
 // Manages the Ed25519 key that signs Bifrost update images. The private key lives
-// only in the login Keychain (never in the repository); the app pins the public key.
+// in the login Keychain or, for CI, the BIFROST_SIGNING_KEY environment variable
+// (never in the repository); the app pins the public key.
 //
 //   swift script/release_signing.swift generate          create the key, print the public key
 //   swift script/release_signing.swift public            print the public key
@@ -21,6 +22,14 @@ func fail(_ message: String) -> Never {
 }
 
 func loadKey() -> Curve25519.Signing.PrivateKey {
+    // CI supplies the key from a secret instead of the Keychain.
+    if let encoded = ProcessInfo.processInfo.environment["BIFROST_SIGNING_KEY"], !encoded.isEmpty {
+        guard let data = Data(base64Encoded: encoded.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let key = try? Curve25519.Signing.PrivateKey(rawRepresentation: data) else {
+            fail("BIFROST_SIGNING_KEY is not a valid base64 Ed25519 private key")
+        }
+        return key
+    }
     let query: [String: Any] = [
         kSecClass as String: kSecClassGenericPassword,
         kSecAttrService as String: service,

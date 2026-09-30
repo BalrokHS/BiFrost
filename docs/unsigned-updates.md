@@ -39,6 +39,10 @@ If an old app has already been overwritten and its service cannot be reached, re
 1. One time: `swift script/release_signing.swift generate` creates the Ed25519 key in the login Keychain and prints the public key. Put it in `UpdateFeed.pinnedPublicKey`. Back up the private key (`export-private`) in a password manager. **If it is lost, installed copies can never verify another update.** Rotating the key needs a manually installed release.
 2. Describe the changes under `## [Unreleased]` in `CHANGELOG.md`, commit, then run `./script/publish_release.sh`. It refuses to run if that section is empty. It packages the image, signs it, and creates the `build-<N>` release with `Bifrost-unsigned.dmg` and `Bifrost-unsigned.dmg.sig`, using the changelog section as the release notes. Afterwards it moves those notes under a `Build <N>` heading and commits and pushes `CHANGELOG.md`.
 
+### Publishing from GitHub Actions
+
+**Actions → Release → Run workflow** (on `master`) runs the tests, then the same `publish_release.sh` on a `macos-26` runner. It needs the private key as the repository secret `BIFROST_SIGNING_KEY` (base64, from `export-private`). Because the key lives in GitHub, anyone with write access to the repository can sign an update the app will accept; protect the account with two-factor authentication and treat a repository compromise as a key compromise. To rotate the key, generate a new one, ship a release signed with the old key that embeds the new public key, then update the secret.
+
 ## Release and verification
 
 `BIFROST_BUILD_NUMBER=123 ./script/package_unsigned_dmg.sh` produces `dist/Bifrost-unsigned.dmg`. Choose a build number higher than every previously published build; do not reuse a published build number for different bytes. Without an override, the Unix timestamp is used. The app's release metadata and service label are set before the app is sealed. App and helper have ad-hoc signatures with hardened runtime and no debugger entitlement. Xcode builds also use ad-hoc signing by default, but distributable updates must go through packaging.

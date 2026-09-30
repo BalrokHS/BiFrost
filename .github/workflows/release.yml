@@ -1,0 +1,40 @@
+name: Release
+
+# Manual only: describe the release under [Unreleased] in CHANGELOG.md, then run
+# this from the Actions tab. It builds, signs and publishes exactly like
+# script/publish_release.sh and stamps the changelog.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          XCODE="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Run regression tests
+        run: ./script/test.sh
+
+      - name: Build, sign and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BIFROST_SIGNING_KEY: ${{ secrets.BIFROST_SIGNING_KEY }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ./script/publish_release.sh

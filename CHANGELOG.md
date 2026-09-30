@@ -6,6 +6,9 @@ Add entries under **Unreleased** as you work. `script/publish_release.sh` uses t
 
 ## [Unreleased]
 
+### Added
+- GitHub Actions release workflow (`.github/workflows/release.yml`): tests, builds, signs and publishes a release from the Actions tab.
+
 ## Build 1790766101 - 2026-09-30
 
 First published release.

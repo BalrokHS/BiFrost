@@ -44,5 +44,6 @@ open(path, "w").write(text)
 PY
 git -C "$ROOT_DIR" add CHANGELOG.md
 git -C "$ROOT_DIR" commit -q -m "Release build $BUILD"
+git -C "$ROOT_DIR" pull -q --rebase
 git -C "$ROOT_DIR" push -q origin HEAD
 echo "Published $TAG"
