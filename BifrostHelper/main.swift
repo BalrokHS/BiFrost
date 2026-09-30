@@ -3,7 +3,7 @@ import OSLog
 
 let cleanupResult = OrphanedArtifactCleanup.run()
 Logger(
-    subsystem: "com.klianos.VPNConfigurator.helper",
+    subsystem: "gr.klianos.bifrost.helper",
     category: "VPNLifecycle"
 ).info(
     "Removed \(cleanupResult.runtimeFiles) orphaned runtime files and \(cleanupResult.resolverFiles) orphaned resolver files"

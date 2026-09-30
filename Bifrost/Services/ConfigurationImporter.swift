@@ -190,7 +190,7 @@ enum ConfigurationImporter {
             create: create
         )
         let directory = applicationSupport
-            .appending(path: "VPN Configurator", directoryHint: .isDirectory)
+            .appending(path: "Bifrost", directoryHint: .isDirectory)
             .appending(path: "OpenVPN", directoryHint: .isDirectory)
         if create {
             try FileManager.default.createDirectory(

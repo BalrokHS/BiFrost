@@ -24,7 +24,7 @@ protocol VPNPasswordStore {
 }
 
 struct KeychainStore: VPNPasswordStore, Sendable {
-    private let service = "com.klianos.VPNConfigurator.credentials"
+    private let service = "gr.klianos.bifrost.credentials"
 
     func password(for profileID: VPNProfile.ID) throws -> String? {
         var query = baseQuery(profileID: profileID)

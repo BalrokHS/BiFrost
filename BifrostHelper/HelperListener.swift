@@ -3,7 +3,7 @@ import OSLog
 import Security
 
 private let listenerLogger = Logger(
-    subsystem: "com.klianos.VPNConfigurator.helper",
+    subsystem: "gr.klianos.bifrost.helper",
     category: "XPCAuthorization"
 )
 

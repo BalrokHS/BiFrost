@@ -255,7 +255,7 @@ private func orphanedArtifactCleanupTests() throws {
 
     let resolverFile = resolvers.appendingPathComponent("internal.example")
     let unrelatedResolverFile = resolvers.appendingPathComponent("other.example")
-    try "# VPN Configurator profile: \(profileID)\nnameserver 10.0.0.1\n".write(
+    try "# Bifrost profile: \(profileID)\nnameserver 10.0.0.1\n".write(
         to: resolverFile, atomically: true, encoding: .utf8
     )
     try "nameserver 192.0.2.1\n".write(to: unrelatedResolverFile, atomically: true, encoding: .utf8)

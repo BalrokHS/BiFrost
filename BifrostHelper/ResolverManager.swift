@@ -7,8 +7,8 @@ import Foundation
 /// the system resolver configuration. configd drops every key a client wrote when
 /// that client's store session ends, so a helper crash cannot leave stale DNS rules.
 enum ResolverManager {
-    private static let servicePrefix = "com.klianos.VPNConfigurator."
-    private nonisolated(unsafe) static let store = SCDynamicStoreCreate(nil, "com.klianos.VPNConfigurator.helper" as CFString, nil, nil)
+    private static let servicePrefix = "gr.klianos.bifrost."
+    private nonisolated(unsafe) static let store = SCDynamicStoreCreate(nil, "gr.klianos.bifrost.helper" as CFString, nil, nil)
     private static let lock = NSLock()
 
     /// Returns the installed store key, or nil when the profile defines no split DNS.

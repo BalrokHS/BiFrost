@@ -3,7 +3,7 @@ import Foundation
 
 enum SecureRuntimeFiles {
     static func make(profileID: String, suffix: String, data: Data) throws -> URL {
-        let directoryURL = URL(fileURLWithPath: "/var/run/vpnconfigurator", isDirectory: true)
+        let directoryURL = URL(fileURLWithPath: "/var/run/bifrost", isDirectory: true)
         try FileManager.default.createDirectory(
             at: directoryURL,
             withIntermediateDirectories: true,
@@ -21,7 +21,7 @@ enum SecureRuntimeFiles {
         let script = """
         #!/bin/sh
         unset INTERNAL_IP4_DNS INTERNAL_IP6_DNS CISCO_DEF_DOMAIN CISCO_SPLIT_DNS
-        exec /bin/sh -c '. "$1"' vpnconfigurator-vpnc '\(vpncScript)'
+        exec /bin/sh -c '. "$1"' bifrost-vpnc '\(vpncScript)'
         """
         let url = try make(profileID: profileID, suffix: "vpnc.sh", data: Data(script.utf8))
         guard chmod(url.path, 0o700) == 0 else {

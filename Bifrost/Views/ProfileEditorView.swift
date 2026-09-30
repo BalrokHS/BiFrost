@@ -1,3 +1,4 @@
+import LocalAuthentication
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -9,6 +10,7 @@ struct ProfileEditorView: View {
     @State private var draft: ProfileDraft
     @State private var validationMessage: String?
     @State private var savedPasswordState = SavedPasswordState.checking
+    @State private var revealedPassword: String?
     @State private var currentStep = EditorStep.connection
     @State private var showingConfigurationImporter = false
     @State private var temporaryConfigurationPath: String?
@@ -328,11 +330,28 @@ struct ProfileEditorView: View {
                         .font(.caption12)
                         .foregroundStyle(Theme.Palette.textTertiary)
                 case .available:
-                    HStack {
-                        Label("A password is saved in your Keychain", systemImage: "key.fill")
-                            .font(.caption12)
-                            .foregroundStyle(Theme.Palette.textSecondary)
+                    HStack(spacing: 8) {
+                        if let revealedPassword {
+                            Text(revealedPassword)
+                                .font(.readout)
+                                .foregroundStyle(Theme.Palette.textPrimary)
+                                .textSelection(.enabled)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        } else {
+                            Label("A password is saved in your Keychain", systemImage: "key.fill")
+                                .font(.caption12)
+                                .foregroundStyle(Theme.Palette.textSecondary)
+                        }
                         Spacer()
+                        Button(revealedPassword == nil ? "Show" : "Hide") {
+                            if revealedPassword == nil {
+                                revealSavedPassword(profile.id)
+                            } else {
+                                revealedPassword = nil
+                            }
+                        }
+                        .buttonStyle(QuietActionStyle(compact: true))
                         Button("Forget") { forgetSavedPassword(profile.id) }
                             .buttonStyle(QuietActionStyle(compact: true, destructive: true))
                     }
@@ -514,9 +533,29 @@ struct ProfileEditorView: View {
         }
     }
 
+    private func revealSavedPassword(_ profileID: VPNProfile.ID) {
+        Task {
+            let context = LAContext()
+            do {
+                try await context.evaluatePolicy(
+                    .deviceOwnerAuthentication,
+                    localizedReason: "reveal the saved VPN password"
+                )
+                revealedPassword = try controller.savedPassword(for: profileID)
+            } catch let error as LAError where error.code == .userCancel
+                || error.code == .appCancel
+                || error.code == .systemCancel {
+                return
+            } catch {
+                validationMessage = error.localizedDescription
+            }
+        }
+    }
+
     private func forgetSavedPassword(_ profileID: VPNProfile.ID) {
         do {
             try controller.removeSavedPassword(for: profileID)
+            revealedPassword = nil
             savedPasswordState = .missing
         } catch {
             validationMessage = error.localizedDescription

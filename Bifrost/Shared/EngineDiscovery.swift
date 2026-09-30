@@ -86,7 +86,7 @@ struct EngineApprovalRecord: Codable, Sendable {
 enum EngineApproval {
     /// Written only by the privileged helper, and only as root.
     static let directory = URL(
-        fileURLWithPath: "/Library/Application Support/VPN Configurator",
+        fileURLWithPath: "/Library/Application Support/Bifrost",
         isDirectory: true
     )
     static let recordURL = directory.appendingPathComponent("approved-engines.json")

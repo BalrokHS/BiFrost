@@ -28,24 +28,24 @@ enum UnsignedRelease {
               build > currentBuild else {
             throw AppUpdateFailure(message: "Choose a newer unsigned Bifrost release from its mounted disk image.")
         }
-        let plistName = "com.klianos.VPNConfigurator.helper.unsigned.\(build).plist"
+        let plistName = "gr.klianos.bifrost.helper.unsigned.\(build).plist"
         guard bundle.object(forInfoDictionaryKey: "BifrostHelperDaemonPlist") as? String == plistName else {
             throw AppUpdateFailure(message: "This release has inconsistent connection-service metadata.")
         }
         let plistURL = url.appendingPathComponent("Contents/Library/LaunchDaemons/\(plistName)")
         let plist = try PropertyListSerialization.propertyList(from: Data(contentsOf: plistURL), format: nil) as? [String: Any]
         guard plist?["Label"] as? String == String(plistName.dropLast(6)),
-              plist?["BundleProgram"] as? String == "Contents/Resources/VPNConfiguratorHelper",
+              plist?["BundleProgram"] as? String == "Contents/Resources/BifrostHelper",
               (plist?["MachServices"] as? [String: Bool]) == [HelperConstants.machServiceName: true],
               plist?["Program"] == nil, plist?["ProgramArguments"] == nil else {
             throw AppUpdateFailure(message: "This release has an invalid connection-service definition.")
         }
-        let helper = url.appendingPathComponent("Contents/Resources/VPNConfiguratorHelper")
+        let helper = url.appendingPathComponent("Contents/Resources/BifrostHelper")
         guard helper.resolvingSymlinksInPath().path.hasPrefix(url.resolvingSymlinksInPath().path + "/") else {
             throw AppUpdateFailure(message: "The connection service must be inside the app.")
         }
         try validateSignature(url, identifier: HelperConstants.mainAppIdentifier)
-        try validateSignature(helper, identifier: "com.klianos.VPNConfigurator.helper")
+        try validateSignature(helper, identifier: "gr.klianos.bifrost.helper")
         return build
     }
 

@@ -1,14 +1,14 @@
 import Foundation
 
 enum HelperConstants {
-    static let machServiceName = "com.klianos.VPNConfigurator.helper"
+    static let machServiceName = "gr.klianos.bifrost.helper"
     static var launchDaemonPlistName: String {
         Bundle.main.object(forInfoDictionaryKey: "BifrostHelperDaemonPlist") as? String
-            ?? "com.klianos.VPNConfigurator.helper.plist"
+            ?? "gr.klianos.bifrost.helper.plist"
     }
-    static let mainAppIdentifier = "com.klianos.VPNConfigurator"
+    static let mainAppIdentifier = "gr.klianos.bifrost"
     static let signingTeamIdentifier = "68SX8JZQFD"
-    static let executionHelperVersion = "VPN Configurator Helper 0.7.0"
+    static let executionHelperVersion = "Bifrost Helper 0.7.0"
 }
 
 /// The wire contract is independent of the product's display/build versions.

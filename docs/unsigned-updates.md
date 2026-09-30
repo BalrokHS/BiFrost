@@ -17,10 +17,14 @@ The installation folder must be writable. This flow does not acquire administrat
 
 - `HelperHandshake` reports protocol version and capabilities. Unsupported protocols fail closed; missing realm support blocks realm use, not every VPN connection. Product-version equality is not required.
 - `prepareForUpdate` is a renewable 15-second lease, handled on the session queue. Pending launches and unfinished sessions both prevent replacement. It blocks new launches but leaves stop/status available. If the app disappears, the lease expires and new connections become possible again.
-- Packaged releases use `com.klianos.VPNConfigurator.helper.unsigned.<build>` as the launch daemon label. The XPC endpoint remains stable. The prior registration must be removed before the next release registers, preventing two daemons from competing for that endpoint and avoiding reuse of a prior ad-hoc build's registration identity.
+- Packaged releases use `gr.klianos.bifrost.helper.unsigned.<build>` as the launch daemon label. The XPC endpoint remains stable. The prior registration must be removed before the next release registers, preventing two daemons from competing for that endpoint and avoiding reuse of a prior ad-hoc build's registration identity.
 - Unsigned helpers authorize only the exact code identity of their installed host app. A development-signed client has no special access to an unsigned helper.
 - App replacement, relaunch and rollback run without a root updater. The helper never accepts arbitrary filesystem destinations or downloaded code.
 - Updates are local and explicitly selected. There is no automatic download feed. A future downloader must verify release signatures from a pinned update key before installation; an app identifier, HTTPS, or an ad-hoc code signature alone is insufficient.
+
+## Migration from the VPNConfigurator identifiers
+
+Bifrost now uses `gr.klianos.bifrost` (helper `gr.klianos.bifrost.helper`). Builds with the old `com.klianos.VPNConfigurator` identifiers cannot update in place, because the updater requires the same bundle identifier. Before installing, use the **old** app to disconnect and unregister its service, then remove it. On first launch, profiles and managed OpenVPN files move automatically from `~/Library/Application Support/VPN Configurator` to `Bifrost`. Saved Keychain passwords and engine approvals (`/Library/Application Support`) are not carried over; re-enter passwords and re-approve engines.
 
 ## First migration from 0.6.x
 

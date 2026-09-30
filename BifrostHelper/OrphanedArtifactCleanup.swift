@@ -3,14 +3,14 @@ import Foundation
 import OSLog
 
 private let cleanupLogger = Logger(
-    subsystem: "com.klianos.VPNConfigurator.helper",
+    subsystem: "gr.klianos.bifrost.helper",
     category: "ArtifactCleanup"
 )
 
 enum OrphanedArtifactCleanup {
-    static let runtimeDirectory = URL(fileURLWithPath: "/var/run/vpnconfigurator", isDirectory: true)
+    static let runtimeDirectory = URL(fileURLWithPath: "/var/run/bifrost", isDirectory: true)
     static let resolverDirectory = URL(fileURLWithPath: "/etc/resolver", isDirectory: true)
-    static let resolverMarker = "# VPN Configurator profile: "
+    static let resolverMarker = "# Bifrost profile: "
 
     @discardableResult
     static func run(

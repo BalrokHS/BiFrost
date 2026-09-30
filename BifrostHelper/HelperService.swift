@@ -4,7 +4,7 @@ import Security
 import Darwin
 
 private let logger = Logger(
-    subsystem: "com.klianos.VPNConfigurator.helper",
+    subsystem: "gr.klianos.bifrost.helper",
     category: "VPNLifecycle"
 )
 
@@ -73,8 +73,8 @@ private final class ReplyBox<Value>: @unchecked Sendable {
 }
 
 final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
-    let queue = DispatchQueue(label: "com.klianos.VPNConfigurator.helper.sessions")
-    private let trustQueue = DispatchQueue(label: "com.klianos.VPNConfigurator.helper.trust", qos: .userInitiated)
+    let queue = DispatchQueue(label: "gr.klianos.bifrost.helper.sessions")
+    private let trustQueue = DispatchQueue(label: "gr.klianos.bifrost.helper.trust", qos: .userInitiated)
     private let resolveEngine: @Sendable (VPNEngine) throws -> ApprovedEngine
     var sessions: [String: VPNSession] = [:]
     private var pendingStarts: Set<String> = []

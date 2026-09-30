@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="Bifrost"
-SCHEME="VPNConfigurator"
+SCHEME="Bifrost"
 # Every published build needs a new increasing number. CI can supply its own.
 RELEASE_BUILD="${BIFROST_BUILD_NUMBER:-$(date +%s)}"
 if [[ ! "$RELEASE_BUILD" =~ ^[1-9][0-9]{0,17}$ ]]; then
@@ -21,7 +21,7 @@ rm -rf "$DERIVED_DATA" "$STAGING_DIR"
 mkdir -p "$DIST_DIR" "$STAGING_DIR"
 
 xcodebuild \
-  -project "$ROOT_DIR/VPNConfigurator.xcodeproj" \
+  -project "$ROOT_DIR/Bifrost.xcodeproj" \
   -scheme "$SCHEME" \
   -configuration Release \
   -destination "generic/platform=macOS" \
@@ -37,7 +37,7 @@ if [[ ! -d "$APP_BUNDLE" ]]; then
   exit 1
 fi
 
-HELPER_BINARY="$APP_BUNDLE/Contents/Resources/VPNConfiguratorHelper"
+HELPER_BINARY="$APP_BUNDLE/Contents/Resources/BifrostHelper"
 
 # Ad-hoc requirements change with each release. Give Service Management a
 # distinct registration identity while retaining the stable XPC endpoint. The
@@ -47,8 +47,8 @@ import pathlib, plistlib, sys
 app, build = pathlib.Path(sys.argv[1]), sys.argv[2]
 info_path = app / 'Contents/Info.plist'
 info = plistlib.loads(info_path.read_bytes())
-label = 'com.klianos.VPNConfigurator.helper.unsigned.' + build
-old = app / 'Contents/Library/LaunchDaemons/com.klianos.VPNConfigurator.helper.plist'
+label = 'gr.klianos.bifrost.helper.unsigned.' + build
+old = app / 'Contents/Library/LaunchDaemons/gr.klianos.bifrost.helper.plist'
 daemon = plistlib.loads(old.read_bytes())
 daemon['Label'] = label
 new = old.with_name(label + '.plist')

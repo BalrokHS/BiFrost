@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.klianos.VPNConfigurator.helper</string>
+    <string>gr.klianos.bifrost.helper</string>
     <key>BundleProgram</key>
-    <string>Contents/Resources/VPNConfiguratorHelper</string>
+    <string>Contents/Resources/BifrostHelper</string>
     <key>MachServices</key>
     <dict>
-        <key>com.klianos.VPNConfigurator.helper</key>
+        <key>gr.klianos.bifrost.helper</key>
         <true/>
     </dict>
 	<key>AssociatedBundleIdentifiers</key>
     <array>
-        <string>com.klianos.VPNConfigurator</string>
+        <string>gr.klianos.bifrost</string>
 	</array>
 	<key>AbandonProcessGroup</key>
 	<false/>

@@ -89,7 +89,7 @@ private struct ControllerRegressionTests {
             let copy = FileManager.default.temporaryDirectory.appendingPathComponent("Bifrost-tamper-\(UUID().uuidString).app")
             try FileManager.default.copyItem(at: release, to: copy)
             defer { try? FileManager.default.removeItem(at: copy) }
-            let binary = copy.appendingPathComponent("Contents/Resources/VPNConfiguratorHelper")
+            let binary = copy.appendingPathComponent("Contents/Resources/BifrostHelper")
             let handle = try FileHandle(forWritingTo: binary)
             try handle.seekToEnd()
             try handle.write(contentsOf: Data("tampered".utf8))

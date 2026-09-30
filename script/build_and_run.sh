@@ -3,7 +3,7 @@ set -euo pipefail
 
 MODE="${1:-run}"
 APP_NAME="Bifrost"
-BUNDLE_ID="com.klianos.VPNConfigurator"
+BUNDLE_ID="gr.klianos.bifrost"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DERIVED_DATA="$ROOT_DIR/DerivedData"
 APP_BUNDLE="$DERIVED_DATA/Build/Products/Debug/Bifrost.app"
@@ -14,8 +14,8 @@ if [[ "$MODE" != "--build" && "$MODE" != "build" ]]; then
 fi
 
 xcodebuild \
-  -project "$ROOT_DIR/VPNConfigurator.xcodeproj" \
-  -scheme VPNConfigurator \
+  -project "$ROOT_DIR/Bifrost.xcodeproj" \
+  -scheme Bifrost \
   -configuration Debug \
   -destination "platform=macOS" \
   -derivedDataPath "$DERIVED_DATA" \

@@ -182,6 +182,10 @@ final class VPNController {
         try keychain.containsPassword(for: profileID)
     }
 
+    func savedPassword(for profileID: VPNProfile.ID) throws -> String? {
+        try keychain.password(for: profileID)
+    }
+
     func removeSavedPassword(for profileID: VPNProfile.ID) throws {
         try keychain.removePassword(for: profileID)
     }
