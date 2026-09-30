@@ -21,6 +21,7 @@ struct BifrostApp: App {
                 .environment(helperManager)
                 .environment(updater)
                 .onAppear { appDelegate.updater = updater }
+                .task { await updater.checkAutomaticallyIfDue() }
                 .frame(minWidth: 940, minHeight: 640)
         }
         .defaultSize(width: 1140, height: 760)

@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 @MainActor
@@ -32,6 +33,34 @@ private struct ControllerRegressionTests {
     static func check(_ condition: @autoclosure () -> Bool, _ description: String) {
         guard condition() else { fatalError("FAIL: \(description)") }
         print("PASS: \(description)")
+    }
+
+        static func updateFeedTests() {
+        let json = { (tag: String, extra: String) in Data("{\"tag_name\":\"\(tag)\"\(extra)}".utf8) }
+        check(UpdateFeed.parseLatest(json("build-123", "")) == UpdateFeed.Release(tag: "build-123", build: 123),
+              "feed parses build tags")
+        check(UpdateFeed.parseLatest(json("v1.2.3", "")) == nil, "feed rejects tags that are not build-<number>")
+        check(UpdateFeed.parseLatest(json("build-0", "")) == nil, "feed rejects zero build numbers")
+        check(UpdateFeed.parseLatest(json("build-1/../x", "")) == nil, "feed rejects path-like tags")
+        check(UpdateFeed.parseLatest(json("build-5", ",\"draft\":true")) == nil, "feed ignores drafts")
+        check(UpdateFeed.parseLatest(json("build-5", ",\"prerelease\":true")) == nil, "feed ignores prereleases")
+        check(UpdateFeed.parseLatest(Data("not json".utf8)) == nil, "feed rejects malformed responses")
+        let release = UpdateFeed.Release(tag: "build-7", build: 7)
+        check(UpdateFeed.assetURL(for: release, name: UpdateFeed.imageName).absoluteString
+              == "https://github.com/\(UpdateFeed.repository)/releases/download/build-7/Bifrost-unsigned.dmg",
+              "asset URLs are derived from the validated tag")
+
+        let key = Curve25519.Signing.PrivateKey()
+        let pinned = key.publicKey.rawRepresentation.base64EncodedString()
+        let image = Data("pretend disk image".utf8)
+        let signature = Data(((try? key.signature(for: image)) ?? Data()).base64EncodedString().utf8)
+        check(UpdateFeed.isAuthentic(image: image, signature: signature, publicKey: pinned), "genuine signature verifies")
+        check(!UpdateFeed.isAuthentic(image: image + [0], signature: signature, publicKey: pinned), "tampered image is rejected")
+        let other = Curve25519.Signing.PrivateKey()
+        let forged = Data(((try? other.signature(for: image)) ?? Data()).base64EncodedString().utf8)
+        check(!UpdateFeed.isAuthentic(image: image, signature: forged, publicKey: pinned), "signature from another key is rejected")
+        check(!UpdateFeed.isAuthentic(image: image, signature: Data("garbage".utf8), publicKey: pinned), "malformed signature is rejected")
+        check(Data(base64Encoded: UpdateFeed.pinnedPublicKey)?.count == 32, "pinned public key is a valid Ed25519 key")
     }
 
     static func updateReplacementTests() throws {
@@ -78,6 +107,7 @@ private struct ControllerRegressionTests {
         check(HelperHandshake.decode(HelperHandshake.current.encoded) == HelperHandshake.current,
               "current handshake preserves protocol and capabilities")
         try updateReplacementTests()
+        updateFeedTests()
         if let path = ProcessInfo.processInfo.environment["BIFROST_TEST_RELEASE"] {
             let release = URL(fileURLWithPath: path)
             let build = try UnsignedRelease.validate(release, newerThan: 1)

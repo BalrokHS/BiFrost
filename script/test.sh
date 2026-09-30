@@ -33,6 +33,7 @@ swiftc -swift-version 6 -parse-as-library \
   "$ROOT_DIR/Bifrost/Shared/EngineDiscovery.swift" \
   "$ROOT_DIR/Bifrost/Services/PrivilegedHelperManager.swift" \
   "$ROOT_DIR/Bifrost/Services/AppUpdateInstaller.swift" \
+  "$ROOT_DIR/Bifrost/Services/UpdateFeed.swift" \
   "$ROOT_DIR/Bifrost/Services/VPNController.swift" \
   "$ROOT_DIR/Bifrost/Services/ProfileStore.swift" \
   "$ROOT_DIR/Bifrost/Services/ConfigurationImporter.swift" \

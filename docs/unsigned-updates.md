@@ -4,6 +4,8 @@ Bifrost ships ad-hoc-signed apps, without Developer ID or notarization. This is 
 
 ## User flow
 
+Settings → General → Bifrost updates checks GitHub at most once a day (switchable) or on demand. **Download update** downloads the image and signature, verifies the signature, mounts the image read-only and stages the app; then continue at step 4. The manual flow below still works for images obtained elsewhere.
+
 1. Download and mount a Bifrost DMG from a source you trust.
 2. In the **installed** Bifrost app, open Settings → General → Bifrost updates and choose the app inside the mounted image.
 3. Bifrost stages a complete copy on the installation volume and validates its signatures, hardened runtime, identifiers, service definition and increasing build number. It rejects development entitlements. These checks establish integrity and packaging consistency, not publisher authenticity.
@@ -20,7 +22,7 @@ The installation folder must be writable. This flow does not acquire administrat
 - Packaged releases use `gr.klianos.bifrost.helper.unsigned.<build>` as the launch daemon label. The XPC endpoint remains stable. The prior registration must be removed before the next release registers, preventing two daemons from competing for that endpoint and avoiding reuse of a prior ad-hoc build's registration identity.
 - Unsigned helpers authorize only the exact code identity of their installed host app. A development-signed client has no special access to an unsigned helper.
 - App replacement, relaunch and rollback run without a root updater. The helper never accepts arbitrary filesystem destinations or downloaded code.
-- Updates are local and explicitly selected. There is no automatic download feed. A future downloader must verify release signatures from a pinned update key before installation; an app identifier, HTTPS, or an ad-hoc code signature alone is insufficient.
+- Releases come from GitHub Releases (`BalrokHS/BiFrost`, tags `build-<number>`) or from a locally selected app. A downloaded image is authenticated against a pinned Ed25519 key (`UpdateFeed.pinnedPublicKey`) BEFORE it is mounted; an app identifier, HTTPS, or an ad-hoc code signature alone is never sufficient. The staged app must also carry exactly the announced build number.
 
 ## Migration from the VPNConfigurator identifiers
 
@@ -31,6 +33,11 @@ Bifrost now uses `gr.klianos.bifrost` (helper `gr.klianos.bifrost.helper`). Buil
 Those apps have no coordinated app-update flow. Disconnect all VPNs and unregister the service **using that old app before replacing it**, then install the new unsigned release and enable VPN connections. The new client recognizes the shipped 0.6.2/0.6.3 handshake for limited compatibility, but never sends those helpers the new preparation method. That small migration adapter is intentionally retained.
 
 If an old app has already been overwritten and its service cannot be reached, restore the old app from backup to complete this one-time migration. Do not reset all macOS background items or weaken code-signing checks to repair Bifrost.
+
+## Publishing a release
+
+1. One time: `swift script/release_signing.swift generate` creates the Ed25519 key in the login Keychain and prints the public key. Put it in `UpdateFeed.pinnedPublicKey`. Back up the private key (`export-private`) in a password manager. **If it is lost, installed copies can never verify another update.** Rotating the key needs a manually installed release.
+2. Commit, then `./script/publish_release.sh`. It packages the image, signs it and creates the `build-<N>` release with `Bifrost-unsigned.dmg` and `Bifrost-unsigned.dmg.sig`.
 
 ## Release and verification
 

@@ -5,6 +5,7 @@ struct AppSettingsView: View {
     @Environment(PrivilegedHelperManager.self) private var helperManager
 
     @Environment(AppUpdateInstaller.self) private var updater
+    @AppStorage("automaticUpdateChecks") private var automaticUpdateChecks = true
 
     let onClose: () -> Void
 
@@ -366,7 +367,16 @@ struct AppSettingsView: View {
             HStack {
                 if case .ready = updater.phase {
                     Button("Install and reopen") { updater.install() }.buttonStyle(.accent)
+                } else if updater.available != nil {
+                    Button("Download update") { updater.downloadAndStage() }
+                        .buttonStyle(.accent)
+                        .disabled(updater.isBusy || helperManager.isChangingRegistration)
                 } else {
+                    Button("Check for updates") { Task { await updater.checkForUpdates() } }
+                        .buttonStyle(.quiet)
+                        .disabled(updater.isBusy)
+                }
+                if case .ready = updater.phase {} else {
                     Button("Choose downloaded app…") { updater.chooseRelease() }
                         .buttonStyle(.quiet)
                         .disabled(updater.isBusy || helperManager.isChangingRegistration)
@@ -375,6 +385,8 @@ struct AppSettingsView: View {
                     Button("Cancel update") { updater.cancel() }.buttonStyle(.quiet)
                 }
             }
+            Toggle("Check for updates automatically", isOn: $automaticUpdateChecks)
+                .toggleStyle(.checkbox)
         }
         .alert("Bifrost update", isPresented: Binding(
             get: { updater.errorMessage != nil },
