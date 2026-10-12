@@ -6,6 +6,8 @@ Add entries under **Unreleased** as you work. `script/publish_release.sh` uses t
 
 ## [Unreleased]
 
+## 0.2.0 - 2026-10-12
+
 ### Added
 - A guided "Get started" checklist on the empty dashboard: enable VPN connections, approve a VPN client, add your first profile. Steps tick off as they are done.
 - Adding a profile or connecting now asks you to enable VPN connections first when the connection service is off.
