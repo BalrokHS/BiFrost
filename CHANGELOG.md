@@ -6,6 +6,8 @@ Add entries under **Unreleased** as you work. `script/publish_release.sh` uses t
 
 ## [Unreleased]
 
+## Build 1791803312 - 2026-10-12
+
 ### Changed
 - Flat, denser interface: one near-black canvas, hairline dividers and small radii replace the glass cards, ambient gradient backdrop, glowing buttons and pulsing status dots.
 - The dashboard lists profiles as rows in a single bordered list, with server, status, uptime and actions on each row.
