@@ -6,6 +6,8 @@ Add entries under **Unreleased** as you work. `script/publish_release.sh` uses t
 
 ## [Unreleased]
 
+## 0.2.1 - 2026-10-12
+
 ### Added
 - OpenFortiVPN profiles with Password + OTP now connect first and ask for the code only when the server asks for it, so a code emailed after the first attempt can be entered. A small sheet with a countdown takes the code; a notification tells you when Bifrost is in the background.
 - Profile icons: choose an avatar of initials (the default), a symbol, or import your own picture in the profile editor.
