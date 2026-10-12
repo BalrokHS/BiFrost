@@ -2,29 +2,31 @@
 
 Notable changes to Bifrost, newest first. Releases are identified by their version (`v<major>.<minor>.<patch>` tags on [GitHub Releases](https://github.com/BalrokHS/BiFrost/releases)). The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-Add entries under **Unreleased** as you work. `script/publish_release.sh` uses that section as the release notes and moves it under the new build.
+Add entries under **Unreleased** as you work. `script/publish_release.sh` uses that section as the release notes and moves it under the new version.
 
 ## [Unreleased]
-
-## Build 1791803312 - 2026-10-12
 
 ### Added
 - A guided "Get started" checklist on the empty dashboard: enable VPN connections, approve a VPN client, add your first profile. Steps tick off as they are done.
 - Adding a profile or connecting now asks you to enable VPN connections first when the connection service is off.
 
 ### Changed
-- Releases use the app version (`v0.2.0`) as the single source of truth. Tags, release titles, the changelog and the in-app update text show the version instead of a timestamp build number; the disk image is now `Bifrost.dmg`.
+- Releases use the app version as the single source of truth. Tags (`v0.2.0`), release titles, the changelog and the in-app update text show the version instead of a timestamp build number; the disk image is now `Bifrost.dmg`.
+
+### Removed
+- "Choose downloaded app…" in Bifrost updates. Updates are downloaded and verified in the app.
+
+### Upgrading from an earlier build
+- The release tag and disk image names changed, so earlier builds cannot find this update from inside the app. Download `Bifrost.dmg` from the release once and replace Bifrost in Applications; later updates install in the app.
+
+## Build 1791803312 - 2026-10-12
+
+### Changed
 - Flat, denser interface: one near-black canvas, hairline dividers and small radii replace the glass cards, ambient gradient backdrop, glowing buttons and pulsing status dots.
 - The dashboard lists profiles as rows in a single bordered list, with server, status, uptime and actions on each row.
 - Status shows as a small dot with a grey label. The profile accent colour tints a profile's icon only while it is connected.
 - The full-colour Bifrost logo leads the dashboard header and signs the settings header.
 - Settings, the profile editor, the menu bar popover and the credential prompt follow the same flat styling.
-
-### Removed
-- "Choose downloaded app…" in Bifrost updates. Updates are downloaded and verified in the app.
-
-### Upgrading from 0.1.0 or earlier
-- The release tag and disk image names changed, so builds before 0.2.0 cannot find this update from inside the app. Download `Bifrost.dmg` from the release once and replace Bifrost in Applications; later updates install in the app.
 
 ## Build 1790770852 - 2026-09-30
 
