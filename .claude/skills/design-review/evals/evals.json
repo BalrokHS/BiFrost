@@ -1,0 +1,108 @@
+{
+  "skill_name": "design-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Critique this dashboard UI: it has a sidebar with 12 navigation items, a header with user stats, a large chart, and a data table below. Everything uses the same font weight and similar sizes. There are 4 different background colors. The primary action button says 'Submit'.",
+      "expected_output": "Should follow the critique output: sentence-case sections, Context and Top opportunities always present, other sections only when they have findings, each finding a bold name, a colon and three plain sentences. Should be specific and quantitative.",
+      "expectations": [
+        "Follows the critique output: sentence-case sections in order (Context, Design system, Visual design, Interface design, Consistency and conventions, User context, Craft details, Top opportunities), with Context and Top opportunities always present and any other section left out when it has no finding",
+        "Each finding uses a bold short name, a colon, then three plain sentences (what is seen, its effect on the person, what to do instead); never bare bullets and never hedging language like 'maybe' or 'I think'",
+        "Closes with Top opportunities: a ranked list of 3-5 highest-impact changes ordered structural > behavioural > visual, each in one sentence",
+        "Identifies the lack of typographic hierarchy as a specific visual design issue (same weight/size across elements)",
+        "Counts the 4 background colors and critiques them as competing rather than establishing hierarchy",
+        "Frames interface design issues as missed opportunities, not just problems",
+        "Critiques 'Submit' as generic button text and recommends a specific action-descriptive alternative"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Lint this React component:\n\n```tsx\nimport { motion } from 'framer-motion';\n\nexport function Card({ children }) {\n  return (\n    <motion.div\n      initial={{ opacity: 0, y: 20 }}\n      animate={{ opacity: 1, y: 0 }}\n      style={{\n        background: '#fff',\n        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',\n        borderRadius: 12,\n        padding: 37,\n      }}\n    >\n      {children}\n    </motion.div>\n  );\n}\n```",
+      "expected_output": "Should run design-fleet lint on the component (or say it cannot here) and report its four findings as the CLI does: V1 pure black shadow, V7 37px padding off the spacing scale and A3 motion without a reduced-motion fallback (errors), and V5 pure white (a warning), each with file, line, the found snippet and a fix that uses the project's tokens. The A3 fix follows the tiered rule. Lint findings stay apart from agent review, and it says what it did not check.",
+      "expectations": [
+        "Identifies V5: #fff is pure white; reports it as the lint's warning and fixes it with the project's surface token or a tinted near-white, keeping white only where the project declares it",
+        "Identifies V1 violation: rgba(0,0,0,0.15) is pure black shadow, recommends tinted dark color",
+        "Identifies V7 violation: 37px padding is not on the 4/8/12/16/24/32/48/64 spacing scale",
+        "Identifies A3 violation: motion.div animates with no reduced-motion handling, and applies the tiered rule rather than disabling animation entirely — under reduced motion the y-movement is removed while the opacity fade may remain for legibility; decorative motion would be fully off and direct-manipulation tracking would stay 1:1",
+        "Runs design-fleet lint (or says it could not run it here), keeps the lint's findings (V1, V5, V7, A3) apart from any agent review, and says what it did not check, such as how the card renders or behaves under reduced motion in a browser",
+        "Each violation entry carries the CLI's severity tag on its heading line (**error** for V1, V7 and A3, **warning** for V5) and includes all five fields: rule ID, file path with line number, found snippet, fix snippet",
+        "Orders violations errors first, then warnings, then info — V1, V7 and A3 (errors) appear before V5 (warning)"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Check this form component for design rule compliance:\n\n```tsx\nexport function LoginForm() {\n  return (\n    <form>\n      <input type=\"email\" placeholder=\"Email address\" />\n      <input type=\"password\" placeholder=\"Password\" />\n      <button style={{ outline: 'none' }}>Submit</button>\n    </form>\n  );\n}\n```",
+      "expected_output": "Should report the lint's one finding, I2 (outline: none with no :focus-visible replacement, an error), and two agent-review findings the lint does not make: W1, inputs with a placeholder and no label (an accessibility error), and W2, the generic Submit label (a lower-severity writing fix such as Sign in).",
+      "expectations": [
+        "Identifies W1: the inputs have a placeholder but no label or aria-label",
+        "Identifies W2: 'Submit' is generic button text, and names the action instead in sentence case (for example 'Sign in')",
+        "Identifies I2: outline: none without a :focus-visible replacement",
+        "Labels I2 as the lint's error and W1 and W2 as agent review, never as lint results; W1 is an error and W2 a lower severity (warning or info)",
+        "Orders findings by severity, I2 and W1 before W2, and gives each a file and line, the found snippet and a fix"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "My project has a VISION.md contract. Lint this modal component against it.\n\nVISION.md (excerpt):\n\n```markdown\n<!-- qd-vision-template: v1 -->\n\n<!-- qd:tokens -->\n## Design tokens\n\n| Token | Value | Use |\n|---|---|---|\n| `color.ink` | `#0f172a` | Body text |\n| `color.surface` | `#fcfcfd` | Cards, modals |\n\n<!-- qd:animation -->\n## Animation timing\n\n| Where | Duration | Easing |\n|---|---|---|\n| Modal card scale + opacity | `200ms` | `ease-out` |\n```\n\ncomponents/Modal.tsx:\n\n```tsx\nexport function Modal({ children }) {\n  return (\n    <div\n      style={{\n        background: '#fcfcfd',\n        color: '#1e293b',\n        transition: 'transform 280ms ease-out, opacity 280ms ease-out',\n      }}\n    >\n      {children}\n    </div>\n  );\n}\n```",
+      "expected_output": "Should run `design-fleet lint` for the contract checks, report P1 for the undeclared `#1e293b` (not in the token map) and P7 for the `280ms` durations (not on the declared 200ms allowlist), note that declared token values suppress V1/V5 false positives (suppressions reported, never silent), flag the literal `#fcfcfd` in review as a copied token value that should reference the surface token even though P1 accepts it, and keep the five-field violation format.",
+      "expectations": [
+        "Mentions running the lint first: `design-fleet lint` runs the contract checks P1 and P7 from VISION.md",
+        "Reports a P1 violation: `#1e293b` is not in the declared token map, and flags the literal `#fcfcfd` as a copied token value that should reference the surface token, even though P1 accepts it",
+        "Reports a P7 violation: `280ms` is not on the declared animation-timing allowlist (`200ms`)",
+        "Notes the V1/V5 suppression semantics: declared token values suppress the generic pure-black/white checks' false positives, and suppressions are reported, never silent",
+        "Each violation entry keeps the five-field format: rule ID, file path with line number, found snippet, fix snippet, and a severity tag on the heading line"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "My VISION.md has a goal `G3 | Pricing page feels on-brand | agent: design-review | active`. I want a pass/fail design-quality verdict on the rendered /pricing page so the build loop can gate on it — not just prose feedback. How do you produce that, and when are you actually allowed to fail the build on it?",
+      "expected_output": "Should use the scored review: score the RENDERED screenshot (not the code) 0-1 on the four weighted axes with a reason for each and a gap paragraph, score the fixed calibration anchors before the target and check them with `design-fleet calibration --scores` (separation 0.15), and say that no score can gate in this release because the anchors are provisional and the CLI answers gateEligible false; a failed agent: goal is still promoted by a person (verify never auto-promotes).",
+      "expectations": [
+        "Scores the actual RENDERED screenshot of /pricing, not the JSX/source — and refuses to gate on code alone (stays advisory when no render is available)",
+        "Produces a 0-1 score across the four weighted axes (design, craft, originality, functionality), each with a reason that cites the render, and a paragraph on the gap; never a bare number",
+        "Calibrates first: scores the fixed calibration anchors before the target and checks separation by the packaged margin (0.15) with `design-fleet calibration --scores`, which needs a checkout of the source repository",
+        "States that the score stays advisory in this release (the anchors are not yet validated by a person and the CLI answers gateEligible false), so the lint remains the only gate and an unproven judge never fails the build",
+        "Notes that a failed agent: goal is reported for human promotion, not auto-failed or auto-promoted (design-fleet verify never auto-promotes)"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Review the animation work in this diff before we merge it:\n\n```css\n/* command palette */\n.palette { transition: all 350ms ease-in; }\n.palette.open { transform: scale(1); opacity: 1; }\n.palette.closed { transform: scale(0); opacity: 0; }\n\n/* dropdown menu */\n.menu { transform-origin: center; transition: transform 400ms ease-in, opacity 400ms ease-in; }\n```\n\n```jsx\n// toast stack - new toasts can arrive in bursts\nconst slideIn = keyframes`from { transform: translateY(100%); } to { transform: translateY(0); }`;\n```\n\nThe palette opens with Cmd+K.",
+      "expected_output": "Motion review: findings in a single Before/After/Why markdown table (not a Before:/After: list), then a verdict ordered by impact ending in an explicit decision (Recommend changes here). Must catch: animation on a keyboard-triggered 100+/day surface (the palette should not animate at all; deletion is the fix, not tuning), transition: all, ease-in on UI, scale(0) entrance, 350-400ms durations, transform-origin center on a trigger-anchored menu, keyframes on rapidly-triggered toasts (needs interruptible transitions).",
+      "expectations": [
+        "Puts every finding in one markdown table whose columns are Before, After and Why, not in prose or a Before:/After: list",
+        "Flags the command palette animation as a frequency violation whose correct fix is deletion (Cmd+K, used constantly - no animation), not a shorter duration",
+        "Catches transition: all, the ease-in easing, and the scale(0) entrance as distinct findings with concrete replacements (specific properties, ease-out or a strong custom curve, scale ~0.95 + opacity)",
+        "Flags transform-origin: center on the dropdown and prescribes origin-aware scaling from the trigger, while noting centered origin is correct for modals",
+        "Flags keyframes on the burst-prone toast stack and prescribes CSS transitions or springs, which can change course mid-animation from where the element is now",
+        "Closes with an explicit decision, Recommend changes or No observed issues (Recommend changes here), with commentary ordered by impact rather than file order"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Scan our app and tell me where motion would help — give me the list of animations to add. It's an internal ops console people live in all day: a dense data table, a command palette they open constantly, filter chips, a settings drawer, and a first-run onboarding wizard most people see once.",
+      "expected_output": "Wave-3 admission probe (the motion opportunity scan). Should return a small capped set rather than one suggestion per surface, explicitly name what stays static and why, reject motion on the highest-frequency interactions on frequency grounds, concentrate expressive motion on the rare first-run surface, and give exact values per proposal.",
+      "expectations": [
+        "Returns a small, deliberately capped set of proposals rather than one per surface",
+        "Explicitly names surfaces that should stay static and gives the reason each was rejected, not just what to add",
+        "Rejects motion on the highest-frequency interactions (command palette, data table, daily-driver controls) on frequency-of-use grounds",
+        "Concentrates any expressive motion on the rare/first-run surface where it is seen once",
+        "Specifies exact values per proposal (curve, duration, property and origin) rather than 'add a subtle transition'",
+        "Treats 'this is already right — add nothing here' as a legitimate outcome rather than forcing suggestions"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Review this page before we merge it. The project already has components/ui/button.tsx (exports Button with primary, secondary and ghost variants) and components/ui/card.tsx, and COMPONENTS.md lists both. There is no VISION.md.\n\napp/settings/page.tsx:\n\n```tsx\nimport { Card } from \"@/components/ui/card\";\n\nexport default function Settings() {\n  return (\n    <Card className=\"p-6\">\n      <h2 className=\"text-lg font-semibold\">Notifications</h2>\n      <button className=\"rounded-md bg-blue-600 px-4 py-2 text-white\" onClick={save}>Save</button>\n    </Card>\n  );\n}\n```\n\napp/globals.css adds `:root { --brand-blue-2: #2563eb; }`, and the PR adds components/settings/SaveButton.tsx, a button with its own `rounded-md bg-blue-600` classes.",
+      "expected_output": "Should check the page against the project's existing components and tokens: name the existing Button (components/ui/button.tsx) for the raw <button> and for the new SaveButton, treat bg-blue-600, text-white and the new --brand-blue-2 as drift off the tokens, and propose rather than add any missing token or variant. Lint findings (N1 warns without a contract) stay separate from agent review.",
+      "expectations": [
+        "Runs or offers `design-fleet lint` and keeps its findings apart from agent review",
+        "Names the existing Button (components/ui/button.tsx) as the fix for the raw <button>, rather than restyling the raw element",
+        "Flags bg-blue-600 and text-white as values off the tokens and names the token to use, or says the project has none that fits, without inventing one",
+        "Flags --brand-blue-2 as a new custom property no contract holds, and proposes it to the user instead of keeping it",
+        "Flags components/settings/SaveButton.tsx as a second component for the job Button already does, and names the existing Button to extend or compose",
+        "Never adds a token or a Button variant itself; when something is missing it says so and proposes it for the user to decide"
+      ]
+    }
+  ]
+}

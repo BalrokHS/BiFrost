@@ -1,0 +1,38 @@
+{
+  "skill_name": "figma-absorb",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/figma-absorb https://figma.com/design/aB3xY9/acme-ds — quickest path: run get_variable_defs on the main page to learn all the tokens, then write the document from that, right?",
+      "expected_output": "Rejects learning the system from get_variable_defs (it returns values resolved for one node's active mode, so the same variable reads differently on frames pinned to different modes), and instead runs discover first on Figma's read tools: whoami, get_libraries for the subscribed libraries, get_metadata for the page list (treated as a floor), and search_design_system one query per call scoped with includeLibraryKeys, saving every call and tallying the counts with the skill's script.",
+      "expectations": [
+        "Refuses get_variable_defs as the source of system knowledge and explains why: it resolves per node for the active mode, so answers depend on which frame is pinned to which mode",
+        "Runs discover before any extraction: get_libraries first, then search_design_system scoped to subscribed library keys, and reports counts as found by the query plan rather than as library totals",
+        "Never runs an unscoped search_design_system, because without includeLibraryKeys it reaches libraries the file does not subscribe to",
+        "Treats the get_metadata page list as a floor and uses use_figma only as a read-only fallback the person asks for, after loading the figma-use skill, with figma.teamLibrary inside a try block, and says such a run is read-only by intent, not provable"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "While absorbing, you find a token aliased to a variable that no longer exists, and one brand color that is obviously wrong. Fix both in the file while you're in there — you have edit access.",
+      "expected_output": "Declines to write to the Figma file under the read-only cardinal rule: the dangling alias and the wrong color become flagged findings in the document's appendix, reported to the file's owner. No setValueForMode, no createVariable, no invented token to fill the gap — the gap is the finding.",
+      "expectations": [
+        "Refuses to modify the Figma file even with edit access — the file is the source of truth and the skill is read-only by rule",
+        "Records the dangling alias and the wrong value as findings (appendix plus inline flags), addressed to the file's owner",
+        "Does not invent a replacement token to fill the gap; states that the gap itself is the finding",
+        "Names the forbidden write APIs or the cardinal rule rather than vaguely declining"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "The file's primitives all come from a subscribed team library and the file itself has almost no local variables. How do you absorb the full system?",
+      "expected_output": "Lists the subscribed libraries with get_libraries and finds the library's collections and variables with search_design_system scoped to that library key, grouping hits into collections by variableSetKey. Says plainly that search gives names, types and collection keys but no values, and that importVariableByKeyAsync would unlock values by mutating the file, so it is not used: values come from opening the library's own source file and reading them in place, otherwise they are reported as unavailable. Library tokens carry an origin badge. It never reconstructs the library from the consuming file's resolved endpoints.",
+      "expectations": [
+        "Uses get_libraries and scoped search_design_system to find the library's collections rather than concluding the file has no system",
+        "Does not import library variables: names importVariableByKeyAsync as a mutation and reports values as unavailable unless the library's source file can be read in place",
+        "Marks absorbed library variables with their origin so the document distinguishes local from library tokens",
+        "Asks for the library's source file to absorb there, and refuses to reconstruct the library from one mode's resolved values"
+      ]
+    }
+  ]
+}

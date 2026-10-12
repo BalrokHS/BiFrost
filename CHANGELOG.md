@@ -6,6 +6,13 @@ Add entries under **Unreleased** as you work. `script/publish_release.sh` uses t
 
 ## [Unreleased]
 
+### Changed
+- Flat, denser interface: one near-black canvas, hairline dividers and small radii replace the glass cards, ambient gradient backdrop, glowing buttons and pulsing status dots.
+- The dashboard lists profiles as rows in a single bordered list, with server, status, uptime and actions on each row.
+- Status shows as a small dot with a grey label. The profile accent colour tints a profile's icon only while it is connected.
+- The full-colour Bifrost logo leads the dashboard header and signs the settings header.
+- Settings, the profile editor, the menu bar popover and the credential prompt follow the same flat styling.
+
 ## Build 1790770852 - 2026-09-30
 
 ### Added

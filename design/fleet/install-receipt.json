@@ -1,0 +1,513 @@
+{
+  "schemaVersion": 1,
+  "package": "design-fleet",
+  "targets": {
+    "claude": {
+      "version": "11.0.3",
+      "components": [
+        "rule:house",
+        "rule:craft",
+        "skill:design-contract",
+        "skill:frontend-design",
+        "skill:design-review",
+        "skill:animation-vocabulary",
+        "skill:motion-audit",
+        "skill:proto",
+        "skill:figma-absorb"
+      ],
+      "profile": "lean",
+      "files": [
+        {
+          "path": ".claude/rules/house.md",
+          "kind": "file",
+          "component": "rule:house",
+          "hash": "a0ce10314877b0bf31f7938cdbbaf157c8fae9ff5e4e59460d8887f406f544c8"
+        },
+        {
+          "path": ".claude/rules/craft.md",
+          "kind": "file",
+          "component": "rule:craft",
+          "hash": "eff61f197efb2592f616ea83ed1e69003f74478b59691c1bd3d1f4e2229ca2f9"
+        },
+        {
+          "path": ".claude/skills/design-contract/SKILL.md",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "c064083e9350290f62d4b769c2f54c7e0e1a049118f22057c75c77824d3212e5"
+        },
+        {
+          "path": ".claude/skills/design-contract/evals/evals.json",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "cccc43b4b7dd5751a47edb10d55c11a4de6c42a50840f603cf524c2c8ee22906"
+        },
+        {
+          "path": ".claude/skills/design-contract/references/assess.md",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "a657c6859f8e92475035484755be25faa7dae64eddf276103230f918683ab566"
+        },
+        {
+          "path": ".claude/skills/design-contract/references/draft.md",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "725c9abf472d5ef4310419e38c7ef4c96742545a801015e21daf71d7faf8a5c8"
+        },
+        {
+          "path": ".claude/skills/design-contract/references/plan.md",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "fb362729c4df536bb19cc349f1ac5e0db8656462ab1810a62c7d51c9b9cea8bf"
+        },
+        {
+          "path": ".claude/skills/design-contract/references/reconcile.md",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "1892699859d008589f2123de826e14adfaa7841f2ceeceb91359a5522a438b65"
+        },
+        {
+          "path": ".claude/skills/design-contract/references/setup.md",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "4d8d9382bd11a1a4c43799109123d03640c050b906bea12757e8390868497357"
+        },
+        {
+          "path": ".claude/skills/design-contract/references/vision-template-full.md",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "250f03f95705f3ed5e0e5e2ee695a37074836cc1958aaa9b0c1260e9b9e5be8c"
+        },
+        {
+          "path": ".claude/skills/design-contract/references/vision-template.md",
+          "kind": "file",
+          "component": "skill:design-contract",
+          "hash": "603a9c12b683e7bacd1f869f45a5735f1b4c21228ebe6bebc5201d7a4e8949be"
+        },
+        {
+          "path": ".claude/skills/frontend-design/SKILL.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "c68986016bc882f559eac9536c132398f6ce3c4ad017aa662d33602c262e9f59"
+        },
+        {
+          "path": ".claude/skills/frontend-design/evals/evals.json",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "414d0523eccd2c6b11bd8298834ec5fa0568468f407a79385a6f93bd6341dd29"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/accessibility.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "c1e1b8e7f73bb61484a4f9782053c0dae802ee4a6c836f18c0c324e61844f7cd"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/clip-path-animation.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "916b126ac6bac3fdbbcd3a3bc4cab6d8827d860c62e8f5471aa1dea80a8b5710"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/color-and-contrast.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "35c730d2e44fb9802fab1da6dcd494061cd144878d38707bc1edc3d71b8fb797"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/container-animation.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "9d44ee4f5f9e4ba76fb9ac78a13d7770bb147ea8cc6fba20c82bb3dd2750f7fd"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/css-animation-mechanics.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "6feb10b5ea651e56911072d48108cd66353a5764a5cd51af5f7bd1ae17a78e40"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/debugging-animations.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "44bd5e1058287e8f9f55eee19f6ef727faba76eb507fbd69a032d3a4fa56fb04"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/easing-curves.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "463c9d514782003db4d9239a894bfa5a2b9fcac10192021780d66f03ec2fb87d"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/exit-animations.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "fd40efed8a28498ee8bb63d5bd2da4760ecda085de8c9d3d3b12132f3e0204a4"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/gesture-and-drag.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "97d9c69b14a40a216bacada47773f462683c7cc1f998f49b890778a99eeaa27e"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/greenfield-direction.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "201c51ebb5ee2316feff992f08e2efafdc843f9bd4200df66476bccb544a6918"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/interaction-design.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "6ce01dc6528494997bd8e326a280ebf3a978bb793ca1230b8cce9811b806c715"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/library-selection.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "c0591bf480a3344f54ad4923336848ca8d4c80915020ffe1161a71864482e9e1"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/materials-and-depth.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "d110f70e3dba35a9c7c845accee315e53358a39f67c414842fd985da4cfb8996"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/motion-brief.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "825466e06c013557c0adade0620855dd1d1c7ed51f418107ff17a33eb0cc25fc"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/motion-react.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "82418b2746fbfcff20456337a6d56e1510aa14d72f84410c3f51e12109a4173a"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/nextjs-tailwind.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "583f6b68954c8f96138d787ef4a3c2a252d6ba4463896abb3667f2b0fc384d6e"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/performance.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "45589469947b8ea863041f53440f8f0d59c0ef1133c3e3f31e0179d2333bb0eb"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/practical-tips.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "569ecad55c998501570dce2a7dc44cd98ea642e71b0362fe09758a18b91e3502"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/predictive-prefetch.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "eccc89fbba9d6b9af9f76b27956e4caf3cb59639ed26cea31f66a3ecbfbddaef"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/responsive-design.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "61dc4f2af8b588c48f810800b0006d449a63a3672c0c8f2a545d81f221ab7ec9"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/scroll-animation.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "e877cb3b0ab9d66fe63582c1c5bbe3e30efd476941faacfdadfd64f721aee17e"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/scrollbars.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "e499b33713aac0763fcce2a7c7367cab8ddeb58d90e50222eee0ab234760dd58"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/spring-animations.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "ea1ff37473cbac470f31f2ef3999b2d9511bd87f65b4b94cb74c496adafe2a9c"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/storyboard-pattern.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "fcfec3d81f89ffaf88ce1c54adf80ed208c72569736a317403f041b1ba8b29fb"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/svg-animation.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "e9c181c8bb13bbc7e8d7a805e98a2d10a092b7a0c6879f2a99389f7cf08fc628"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/timing-and-duration.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "d17ce066e9ec3fd3235de8eb4a21313a0466b23a960d32786426fd153527a0c2"
+        },
+        {
+          "path": ".claude/skills/frontend-design/references/view-transitions.md",
+          "kind": "file",
+          "component": "skill:frontend-design",
+          "hash": "a3e93f9e7d2f14540a195c63b5d9c72c563e1df3227178bac45f5f76e50992f6"
+        },
+        {
+          "path": ".claude/skills/design-review/SKILL.md",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "b685302893481c7a98f7e8a82aa9c88b9b09a67437809aa486bae0b8645ad715"
+        },
+        {
+          "path": ".claude/skills/design-review/evals/evals.json",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "8d2e593bda820a4f29e21687223aaa96ffccec1550fbdd2a3c3ff092245472c9"
+        },
+        {
+          "path": ".claude/skills/design-review/references/code-checks.md",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "3b4973951b855997000b08caa8b821bd6f6e37d7a399607198c2737b2b9ccce9"
+        },
+        {
+          "path": ".claude/skills/design-review/references/critique.md",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "d241b151f10282f42eacd4f1238fa688c2f4e53cf7dad2622c982872cc94c05c"
+        },
+        {
+          "path": ".claude/skills/design-review/references/motion-opportunities.md",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "7d067d8d4c19e1a37e462a1ae7849bd231aa2d795842696c0e630b918fa961b0"
+        },
+        {
+          "path": ".claude/skills/design-review/references/motion-review.md",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "9a8f40c9148a652103193761036b793c2feadfd0e25a381e0adb1d63fbc7a3e7"
+        },
+        {
+          "path": ".claude/skills/design-review/references/nielsen-review.md",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "85e14cbdf270bd5e40f439e4260c374048682b7e6cde1184b70dd8bebd6f87ec"
+        },
+        {
+          "path": ".claude/skills/design-review/references/review-guidance.md",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "f19a019bb01dbf4579c3d5e854f511373364d9a9b753c65b8d0549537fbfc179"
+        },
+        {
+          "path": ".claude/skills/design-review/references/scored-review.md",
+          "kind": "file",
+          "component": "skill:design-review",
+          "hash": "96c5943a830a6c8326387044e53e808622d4f97eaaeb13c408eb341eb5d707c8"
+        },
+        {
+          "path": ".claude/skills/animation-vocabulary/SKILL.md",
+          "kind": "file",
+          "component": "skill:animation-vocabulary",
+          "hash": "f856e6fa7ab6b379b0bb8a0d9c715e33c689c7e6198cd2d6a8beb5f6400cf224"
+        },
+        {
+          "path": ".claude/skills/animation-vocabulary/evals/evals.json",
+          "kind": "file",
+          "component": "skill:animation-vocabulary",
+          "hash": "157b1e94169cc99307d9e0676680e1714e110a78ccf94204af7c4116d8943ebd"
+        },
+        {
+          "path": ".claude/skills/motion-audit/SKILL.md",
+          "kind": "file",
+          "component": "skill:motion-audit",
+          "hash": "9ee037d9651755f04d5a1bab6f118369c231193484b0ec3ea81220e46cabd9b0"
+        },
+        {
+          "path": ".claude/skills/motion-audit/evals/evals.json",
+          "kind": "file",
+          "component": "skill:motion-audit",
+          "hash": "3ac175bbbf18db7ec3b2505ef3f6947e7c0863a87e90273f2b961f1b9bc3768b"
+        },
+        {
+          "path": ".claude/skills/motion-audit/references/AUDIT.md",
+          "kind": "file",
+          "component": "skill:motion-audit",
+          "hash": "fd175a7985e98286b28c9c423065de4f5f76ed38312b2590e12ecf80b6875b68"
+        },
+        {
+          "path": ".claude/skills/motion-audit/references/PLAN-TEMPLATE.md",
+          "kind": "file",
+          "component": "skill:motion-audit",
+          "hash": "1dc68a77d09138bec74ea5cc42da90d62d1eefa52eacec188ae15d77eb16f464"
+        },
+        {
+          "path": ".claude/skills/proto/SKILL.md",
+          "kind": "file",
+          "component": "skill:proto",
+          "hash": "d5e2e84cd2f812d02f97894851c99abe740acf7b012b5483a3ba91b04b53ea2b"
+        },
+        {
+          "path": ".claude/skills/proto/evals/evals.json",
+          "kind": "file",
+          "component": "skill:proto",
+          "hash": "99731211d47279fb46e2a5a9e9605eb933fea6246d8ea2d3bc6a9371cd695988"
+        },
+        {
+          "path": ".claude/skills/proto/switcher.js",
+          "kind": "file",
+          "component": "skill:proto",
+          "hash": "4f5a1845f651286d46f4bae5baaf8645bf5eb48adb3666b420ea6d332cc07e8b"
+        },
+        {
+          "path": ".claude/skills/figma-absorb/SKILL.md",
+          "kind": "file",
+          "component": "skill:figma-absorb",
+          "hash": "d29e51ae9820e220c6e78b68195d5d172fbe8b4b5ada249d26ffca157bbeda01"
+        },
+        {
+          "path": ".claude/skills/figma-absorb/evals/evals.json",
+          "kind": "file",
+          "component": "skill:figma-absorb",
+          "hash": "7f82c67e4ac0713a5bdb0c8b13eeaa14d29fcf7b5d8e7a52ec5155d3c7176730"
+        },
+        {
+          "path": ".claude/skills/figma-absorb/scripts/discover.mjs",
+          "kind": "file",
+          "component": "skill:figma-absorb",
+          "hash": "766fb4b17d614eb3508553db45ea14c6da37460ec0f8fc9de925a7e2b5f6c264"
+        },
+        {
+          "path": ".claude/design-fleet/references/color-contrast.md",
+          "kind": "file",
+          "component": "reference:color-contrast",
+          "hash": "8e01270fba748e775a72bad841ef1d43233a6d9c8d04047d23aabb942d42cb80"
+        },
+        {
+          "path": ".claude/design-fleet/references/data-visualization.md",
+          "kind": "file",
+          "component": "reference:data-visualization",
+          "hash": "d4a7ad7cd280ae577395bd428e8b3fd25940a9d636d46a61086c7c804a8f2672"
+        },
+        {
+          "path": ".claude/design-fleet/references/design-intent.md",
+          "kind": "file",
+          "component": "reference:design-intent",
+          "hash": "183ec16d4165b17f658cb0fffc997dba8a4dbe81e08e9418e686f4a7fc4cc5c9"
+        },
+        {
+          "path": ".claude/design-fleet/references/interaction-feedback.md",
+          "kind": "file",
+          "component": "reference:interaction-feedback",
+          "hash": "9077e89d297cb30ca7d9f40563118a5e976c7c5dc502ab79587d05df52c44b7f"
+        },
+        {
+          "path": ".claude/design-fleet/references/keyboard-shortcuts.md",
+          "kind": "file",
+          "component": "reference:keyboard-shortcuts",
+          "hash": "d56daed517b470e7b5853eaf81f7b9f4ef009a806ef5f4bc6fa2295337a6e25d"
+        },
+        {
+          "path": ".claude/design-fleet/references/layout-composition.md",
+          "kind": "file",
+          "component": "reference:layout-composition",
+          "hash": "bba8fc5fbc67b4fd311a8b5e269e2d2b736878082b82c81cc551e40e58af8f57"
+        },
+        {
+          "path": ".claude/design-fleet/references/responsive-design.md",
+          "kind": "file",
+          "component": "reference:responsive-design",
+          "hash": "4072c31e1196261992699cb5521d18ec5cb49b8786eee1c23b75741346c5e237"
+        },
+        {
+          "path": ".claude/design-fleet/references/typography.md",
+          "kind": "file",
+          "component": "reference:typography",
+          "hash": "2dc8f5b8406b300eed00a17ff6f68bc9a29860577cc569168631a3998f67b552"
+        },
+        {
+          "path": ".claude/design-fleet/references/ux-laws.md",
+          "kind": "file",
+          "component": "reference:ux-laws",
+          "hash": "006df8e15219e32790105aed0702ce9f688030972450081588202bb4c031c845"
+        },
+        {
+          "path": ".claude/design-fleet/references/ux-writing.md",
+          "kind": "file",
+          "component": "reference:ux-writing",
+          "hash": "eecf01997573ee9d58a3cad5f56f4e9a5cca594153cb88f3fda5e140b97b268b"
+        },
+        {
+          "path": ".claude/design-fleet/references/visual-design.md",
+          "kind": "file",
+          "component": "reference:visual-design",
+          "hash": "c9c92cbc03646d834231120c91b47a0864e9525dba21abacd2a9a13268d23ee6"
+        },
+        {
+          "path": ".claude/policy.md",
+          "kind": "file",
+          "component": "integration",
+          "hash": "67f916c744371ca613c8c157332aa88b6707c72d7e8a58ef319d942de1d74c94"
+        },
+        {
+          "path": ".claude/rules/.design-fleet-version",
+          "kind": "file",
+          "component": "integration",
+          "hash": "a2ee2b4f003ea29f2d31d56e970ff162c8d15698e97d36b747708558b9ea6a07"
+        },
+        {
+          "path": ".claude/design-fleet/run.mjs",
+          "kind": "file",
+          "component": "integration",
+          "hash": "a9003cf466250f106381a17b193797ca7c2b058509196befa294fb673ca646e0"
+        },
+        {
+          "path": ".claude/rules/_design-fleet-overview.md",
+          "kind": "file",
+          "component": "integration",
+          "hash": "8c3ecbf40ae08a3fc36c02632d056d230da49c164056faf3aab6e679d3c52393"
+        },
+        {
+          "path": "CLAUDE.md",
+          "kind": "block",
+          "component": "integration",
+          "start": "<!-- design-fleet:entry:start -->",
+          "end": "<!-- design-fleet:entry:end -->",
+          "hash": "cbfacb2e60869d8a7d9d776f64efcb11f6196c3a7c7428c505ed4103ef020447"
+        },
+        {
+          "path": ".claude/skill-manifest.json",
+          "kind": "file",
+          "component": "integration",
+          "hash": "16e75d1f68ca2af5b3e5d71fcdf3a59c63531fe674978d8bba246892f56c77f6"
+        },
+        {
+          "path": ".claude/settings.json",
+          "kind": "json-hook",
+          "component": "integration",
+          "marker": ".claude/design-fleet/run.mjs hook",
+          "event": "PreToolUse",
+          "hash": "a3e67e03da57f6645445ea11b6762d4a03f674ab3623edfa0ef55a6fe6a3a64c",
+          "created": true
+        },
+        {
+          "path": ".claude/settings.json",
+          "kind": "json-hook",
+          "component": "integration",
+          "marker": ".claude/design-fleet/run.mjs inventory",
+          "event": "PostToolUse",
+          "hash": "2d5256fb7f6612a2175e5efd946e8c1dc99aac89733e071cbca1b41e31aaa4b6",
+          "created": true
+        }
+      ],
+      "visionWired": true,
+      "hook": true
+    }
+  }
+}
