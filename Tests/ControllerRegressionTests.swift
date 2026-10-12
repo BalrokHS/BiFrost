@@ -1,3 +1,4 @@
+import AppKit
 import CryptoKit
 import Foundation
 
@@ -12,8 +13,11 @@ private final class MockHelper: VPNHelperClient {
     func VPNStatus(profileID: VPNProfile.ID, completion: @escaping @MainActor (Result<HelperVPNStatus, Error>) -> Void) { statusReplies.append(completion) }
     func stopVPN(profileID: VPNProfile.ID, completion: @escaping @MainActor (Result<String, Error>) -> Void) { stopReplies.append(completion) }
     func startOpenFortiVPN(profileID: VPNProfile.ID, server: String, trustedCertificate: String, username: String, password: String, oneTimePassword: String, useSAML: Bool, dnsServers: [String], dnsDomains: [String], completion: @escaping @MainActor (Result<String, Error>) -> Void) { launchedCredentials.append(VPNCredentials(password: password, oneTimePassword: oneTimePassword)); startReplies.append(completion) }
+    var submittedCodes: [String] = []
+    var submitReplies: [(@MainActor (Result<String, Error>) -> Void)] = []
+    func submitOneTimePassword(profileID: VPNProfile.ID, oneTimePassword: String, completion: @escaping @MainActor (Result<String, Error>) -> Void) { submittedCodes.append(oneTimePassword); submitReplies.append(completion) }
     func startOpenVPN(profileID: VPNProfile.ID, configuration: String, username: String, password: String, dnsServers: [String], dnsDomains: [String], completion: @escaping @MainActor (Result<String, Error>) -> Void) { startReplies.append(completion) }
-    func startOpenConnect(profileID: VPNProfile.ID, server: String, serverCertificatePin: String, username: String, password: String, oneTimePassword: String, dnsServers: [String], dnsDomains: [String], completion: @escaping @MainActor (Result<String, Error>) -> Void) { startReplies.append(completion) }
+    func startOpenConnect(profileID: VPNProfile.ID, server: String, serverCertificatePin: String, username: String, password: String, oneTimePassword: String, dnsServers: [String], dnsDomains: [String], completion: @escaping @MainActor (Result<String, Error>) -> Void) { launchedCredentials.append(VPNCredentials(password: password, oneTimePassword: oneTimePassword)); startReplies.append(completion) }
 
     func status(_ state: String, pid: Int32 = 0, interface: String = "") {
         statusReplies.removeFirst()(.success(HelperVPNStatus(state: state, processIdentifier: pid, interfaceName: interface, log: "")))
@@ -213,7 +217,9 @@ private struct ControllerRegressionTests {
         for method in [AuthenticationMethod.password, .passwordAndOTP] {
             let reconnectHelper = MockHelper()
             let savedProfile = VPNProfile(
-                name: "Reconnect fixture", server: "vpn.example.com", provider: .openFortiVPN,
+                // OpenConnect takes its code up front; OpenFortiVPN asks later (tested below).
+                name: "Reconnect fixture", server: "vpn.example.com",
+                provider: method == .passwordAndOTP ? .openConnect : .openFortiVPN,
                 authentication: method, username: "saved-user", serverCertificatePin: "saved-pin",
                 dnsDomains: ["internal.example.com"], dnsServers: ["10.0.0.53"]
             )
@@ -286,6 +292,56 @@ private struct ControllerRegressionTests {
               "Forti imports preserve authentication realm and SAML")
         let restoredForti = try JSONDecoder().decode(VPNProfile.self, from: JSONEncoder().encode(fortiProfile))
         check(restoredForti.server == fortiProfile.server, "Forti realm survives profile persistence")
+        check(restoredForti.icon == .avatar, "profiles without an icon default to the avatar")
+        var iconProfile = fortiProfile
+        iconProfile.icon = .symbol("globe")
+        let restoredIcon = try JSONDecoder().decode(VPNProfile.self, from: JSONEncoder().encode(iconProfile))
+        check(restoredIcon.icon == .symbol("globe"), "symbol icon survives profile persistence")
+        iconProfile.icon = .image
+        let restoredImage = try JSONDecoder().decode(VPNProfile.self, from: JSONEncoder().encode(iconProfile))
+        check(restoredImage.icon == .image, "picture icon survives profile persistence")
+        let unknownSymbol = Data(#"{"name":"x","server":"s","provider":"OpenVPN","authentication":"Password","icon":"symbol:../../etc"}"#.utf8)
+        let decodedUnknown = try JSONDecoder().decode(VPNProfile.self, from: unknownSymbol)
+        check(decodedUnknown.icon == .avatar, "unknown symbol names fall back to the avatar")
+        let wide = NSImage(size: NSSize(width: 400, height: 200), flipped: false) { rect in
+            NSColor.red.setFill(); rect.fill(); return true
+        }
+        let png = ProfileIconStore.normalizedPNG(from: wide).flatMap { NSBitmapImageRep(data: $0) }
+        check(png?.pixelsWide == ProfileIconStore.pixelSize && png?.pixelsHigh == ProfileIconStore.pixelSize,
+              "imported pictures are normalised to a square")
+        // OpenFortiVPN asks for the code after its first attempt, not up front.
+        let otpProfile = VPNProfile(name: "Corp", server: "vpn.example.com", provider: .openFortiVPN, authentication: .passwordAndOTP, username: "u")
+        let otpHelper = MockHelper()
+        let otpStore = MockPasswordStore()
+        otpStore.passwords[otpProfile.id] = "secret"
+        let otpController = VPNController(helperManager: otpHelper, initialProfiles: [otpProfile], keychain: otpStore)
+        otpHelper.status(HelperSessionState.disconnected.rawValue)
+        otpController.requestConnection(otpProfile)
+        check(otpController.authenticationRequest == nil && otpHelper.launchedCredentials.count == 1
+              && (otpHelper.launchedCredentials[0].oneTimePassword ?? "").isEmpty,
+              "a Forti OTP profile with a saved password connects without asking for a code first")
+        otpHelper.startReplies.removeFirst()(.success("ok"))
+        otpHelper.status(HelperSessionState.waitingForOneTimePassword.rawValue, pid: 42)
+        check(otpController.authenticationRequest?.serverRequestedCode == true
+              && otpController.authenticationRequest?.profileID == otpProfile.id,
+              "the code prompt appears when the helper reports the client is waiting")
+        check(otpController.state(for: otpProfile) == .waitingForAuthentication, "the profile shows as waiting while the code is requested")
+        do { try otpController.submitOneTimePassword("  ") } catch { check(true, "an empty code is rejected") }
+        try otpController.submitOneTimePassword(" 123456 ")
+        check(otpHelper.submittedCodes == ["123456"] && otpController.authenticationRequest == nil,
+              "the trimmed code is sent to the helper and the prompt closes")
+        otpHelper.submitReplies.removeFirst()(.failure(NSError(domain: "t", code: 1, userInfo: [NSLocalizedDescriptionKey: "not waiting"])))
+        check(otpController.authenticationRequest?.errorMessage == "not waiting",
+              "a failed submit reopens the prompt with the reason")
+        otpController.cancelAuthentication()
+        check(otpController.authenticationRequest == nil && otpController.state(for: otpProfile) == .disconnecting,
+              "cancelling a code prompt disconnects the attempt")
+        let upFront = VPNProfile(name: "Cisco", server: "vpn.example.com", provider: .openConnect, authentication: .passwordAndOTP, username: "u")
+        let upFrontHelper = MockHelper()
+        let upFrontController = VPNController(helperManager: upFrontHelper, initialProfiles: [upFront], keychain: MockPasswordStore())
+        upFrontHelper.status(HelperSessionState.disconnected.rawValue)
+        upFrontController.requestConnection(upFront)
+        check(upFrontController.authenticationRequest?.collectsCode == true, "OpenConnect still collects the code up front")
         print("All controller and importer regression tests passed.")
     }
 }

@@ -64,6 +64,8 @@ private struct ProcessSpecification: Sendable {
     let dnsDomains: [String]
     let connectedMarkers: [String]
     var standardInput: Data? = nil
+    /// OpenFortiVPN prompts for a code on stdin after the first attempt.
+    var answersOneTimePasswordPrompt = false
     var launchLog: String? = nil
 }
 
@@ -155,7 +157,10 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
                     temporaryURLs: temporaryURLs,
                     dnsServers: dnsConfiguration.servers,
                     dnsDomains: dnsConfiguration.domains,
-                    connectedMarkers: ["Tunnel is up and running"]
+                    connectedMarkers: ["Tunnel is up and running"],
+                    // With no code supplied up front the server may still ask for
+                    // one (for example an emailed code sent after the first try).
+                    answersOneTimePasswordPrompt: !useSAML && oneTimePassword.isEmpty
                 ), profileID: profileID)
                 return "OpenFortiVPN started."
             } catch {
@@ -271,6 +276,36 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
                 SecureRuntimeFiles.remove(temporaryURLs)
                 throw error
             }
+        }
+    }
+
+    static let oneTimePasswordPrompt = "Two-factor authentication token:"
+
+    func submitOneTimePassword(
+        profileID: String,
+        oneTimePassword: String,
+        reply: @escaping @Sendable (Bool, String) -> Void
+    ) {
+        let replyBox = ReplyBox<(Bool, String)> { reply($0.0, $0.1) }
+        queue.async { [self] in
+            guard let session = sessions[profileID], session.process.isRunning, !session.didFinish,
+                  session.state == .waitingForOneTimePassword, let input = session.inputHandle else {
+                replyBox.call((false, "This connection is not waiting for a code."))
+                return
+            }
+            do {
+                try HelperInputValidator.secret(oneTimePassword)
+                guard !oneTimePassword.isEmpty else { throw HelperFailure.missingCredentials }
+                try input.write(contentsOf: Data((oneTimePassword + "\n").utf8))
+            } catch {
+                replyBox.call((false, error.localizedDescription))
+                return
+            }
+            session.otpSubmissions += 1
+            session.state = .connecting
+            // The code itself is never logged.
+            append("\nSubmitted the one-time password.\n", to: session)
+            replyBox.call((true, "Code submitted."))
         }
     }
 
@@ -480,7 +515,7 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         process.arguments = specification.arguments
         process.environment = secureEnvironment
 
-        let inputPipe = specification.standardInput.map { _ in Pipe() }
+        let inputPipe = (specification.standardInput != nil || specification.answersOneTimePasswordPrompt) ? Pipe() : nil
         process.standardInput = inputPipe ?? FileHandle.nullDevice
         let session = VPNSession(
             profileID: profileID,
@@ -491,10 +526,14 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
             dnsDomains: specification.dnsDomains,
             connectedMarkers: specification.connectedMarkers
         )
+        if specification.answersOneTimePasswordPrompt, let inputPipe {
+            session.awaitsOneTimePassword = true
+            session.inputHandle = inputPipe.fileHandleForWriting
+        }
         try launch(session)
 
         if let input = specification.standardInput, let inputPipe {
-            inputPipe.fileHandleForWriting.write(input)
+            try? inputPipe.fileHandleForWriting.write(contentsOf: input)
             try? inputPipe.fileHandleForWriting.close()
         }
         if let launchLog = specification.launchLog {
@@ -558,6 +597,11 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
            session.log.localizedCaseInsensitiveContains("Authenticate at '") {
             session.state = .waitingForAuthentication
         }
+        if session.awaitsOneTimePassword, session.state == .connecting || session.state == .waitingForOneTimePassword {
+            // The prompt has no trailing newline, so count it rather than parse lines.
+            let prompts = session.log.components(separatedBy: HelperService.oneTimePasswordPrompt).count - 1
+            if prompts > session.otpSubmissions { session.state = .waitingForOneTimePassword }
+        }
         if session.log.localizedCaseInsensitiveContains("AUTH_FAILED"),
            !session.didDetectAuthenticationFailure {
             session.didDetectAuthenticationFailure = true
@@ -611,6 +655,8 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         session.didFinish = true
         session.outputPipe.fileHandleForReading.readabilityHandler = nil
         session.errorPipe.fileHandleForReading.readabilityHandler = nil
+        try? session.inputHandle?.close()
+        session.inputHandle = nil
         for url in session.temporaryURLs { try? FileManager.default.removeItem(at: url) }
         ResolverManager.remove(session.resolverKey, ownedBy: session.profileID)
         if session.stopRequested {

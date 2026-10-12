@@ -100,6 +100,12 @@ protocol VPNHelperClient: AnyObject {
         completion: @escaping @MainActor (Result<String, Error>) -> Void
     )
 
+    func submitOneTimePassword(
+        profileID: VPNProfile.ID,
+        oneTimePassword: String,
+        completion: @escaping @MainActor (Result<String, Error>) -> Void
+    )
+
     func stopVPN(
         profileID: VPNProfile.ID,
         completion: @escaping @MainActor (Result<String, Error>) -> Void
@@ -460,6 +466,21 @@ final class PrivilegedHelperManager: VPNHelperClient {
                 handshake = nil
                 helperVersion = nil
                 completion(.failure(error))
+            }
+        }
+    }
+
+    func submitOneTimePassword(
+        profileID: VPNProfile.ID,
+        oneTimePassword: String,
+        completion: @escaping @MainActor (Result<String, Error>) -> Void
+    ) {
+        performOperation(completion: completion) { proxy, reply in
+            proxy.submitOneTimePassword(
+                profileID: profileID.uuidString,
+                oneTimePassword: oneTimePassword
+            ) { success, message in
+                reply(success ? .success(message) : .failure(HelperClientError(message: message)))
             }
         }
     }

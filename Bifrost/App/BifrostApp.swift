@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct BifrostApp: App {
@@ -11,7 +12,11 @@ struct BifrostApp: App {
         let helperManager = PrivilegedHelperManager()
         _helperManager = State(initialValue: helperManager)
         _updater = State(initialValue: AppUpdateInstaller(helper: helperManager))
-        _controller = State(initialValue: VPNController(helperManager: helperManager))
+        let controller = VPNController(helperManager: helperManager)
+        controller.onCodeRequested = { profileName in
+            CodeRequestNotifier.notify(profileName: profileName)
+        }
+        _controller = State(initialValue: controller)
     }
 
     var body: some Scene {
@@ -52,5 +57,24 @@ final class BifrostAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         // The menu bar and active connections remain available until explicit Quit.
         false
+    }
+}
+
+/// Tells a user who is in another app that a connection is waiting for a code.
+/// The first request asks macOS for permission; without it the window still
+/// opens from the menu bar.
+@MainActor
+enum CodeRequestNotifier {
+    static func notify(profileName: String) {
+        guard !NSApp.isActive else { return }
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Enter the code for \(profileName)"
+            content.body = "The server asked for a one-time password. Open Bifrost to finish connecting."
+            content.sound = .default
+            center.add(UNNotificationRequest(identifier: "otp-\(profileName)", content: content, trigger: nil))
+        }
     }
 }

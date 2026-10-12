@@ -126,6 +126,79 @@ static func duplicateStartTests() throws {
     check(replied.wait(timeout: .now() + 3) == .success, "stop replies")
 }
 
+/// An OpenFortiVPN-style client: prompts for a code with no trailing newline,
+/// reads it from stdin, and accepts only one value.
+static func oneTimePasswordPromptTests() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let script = directory.appendingPathComponent("fake-forti.sh")
+    try """
+    #!/bin/sh
+    printf 'Two-factor authentication token: '
+    read code
+    if [ "$code" = "424242" ]; then echo "Code accepted"; else echo "Code rejected"; fi
+    sleep 30
+    """.write(to: script, atomically: true, encoding: .utf8)
+    chmod(script.path, 0o700)
+
+    let helper = HelperService()
+    let process = Process()
+    process.executableURL = script
+    let input = Pipe()
+    process.standardInput = input
+    let session = newSession(process: process)
+    session.awaitsOneTimePassword = true
+    session.inputHandle = input.fileHandleForWriting
+    try helper.queue.sync { try helper.launch(session) }
+    defer {
+        if process.isRunning { process.terminate() }
+        process.waitUntilExit()
+    }
+
+    func waitForState(_ expected: HelperSessionState) -> Bool {
+        for _ in 0..<50 {
+            if helper.queue.sync(execute: { session.state }) == expected { return true }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        return false
+    }
+    check(waitForState(.waitingForOneTimePassword), "a prompt without a trailing newline is recognised")
+
+    let replied = DispatchSemaphore(value: 0)
+    helper.submitOneTimePassword(profileID: "unknown", oneTimePassword: "1") { success, _ in
+        check(!success, "a code for an unknown session is refused")
+        replied.signal()
+    }
+    check(replied.wait(timeout: .now() + 2) == .success, "unknown-session submit replies")
+    helper.submitOneTimePassword(profileID: session.profileID, oneTimePassword: "12\n34") { success, _ in
+        check(!success, "a code containing a newline is refused")
+        replied.signal()
+    }
+    check(replied.wait(timeout: .now() + 2) == .success, "unsafe submit replies")
+
+    helper.submitOneTimePassword(profileID: session.profileID, oneTimePassword: "424242") { success, _ in
+        check(success, "the code is written to the client")
+        replied.signal()
+    }
+    check(replied.wait(timeout: .now() + 2) == .success, "submit replies")
+    var accepted = false
+    for _ in 0..<50 {
+        if helper.queue.sync(execute: { session.log.contains("Code accepted") }) { accepted = true; break }
+        Thread.sleep(forTimeInterval: 0.1)
+    }
+    check(accepted, "the client received exactly the submitted code")
+    helper.queue.sync {
+        check(session.state == .connecting, "state returns to connecting after the code is sent")
+        check(!session.log.contains("424242"), "the code is never written to the log")
+    }
+    helper.submitOneTimePassword(profileID: session.profileID, oneTimePassword: "1") { success, _ in
+        check(!success, "a second code is refused when no prompt is waiting")
+        replied.signal()
+    }
+    check(replied.wait(timeout: .now() + 2) == .success, "second submit replies")
+}
+
 static func trustWorkDoesNotBlockSessionQueue() {
     let enteredTrust = DispatchSemaphore(value: 0)
     let releaseTrust = DispatchSemaphore(value: 0)
@@ -437,6 +510,7 @@ openFortiVPNConfigurationTests()
 try parserTests()
 HelperService.stateTests()
 try HelperService.duplicateStartTests()
+try HelperService.oneTimePasswordPromptTests()
 HelperService.trustWorkDoesNotBlockSessionQueue()
 HelperService.updatePreparationTests()
 try trustTests()

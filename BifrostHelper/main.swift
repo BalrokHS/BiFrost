@@ -1,6 +1,9 @@
 import Foundation
 import OSLog
 
+// A client that exits while a code is being written must not take the helper down.
+signal(SIGPIPE, SIG_IGN)
+
 let cleanupResult = OrphanedArtifactCleanup.run()
 Logger(
     subsystem: "gr.klianos.bifrost.helper",

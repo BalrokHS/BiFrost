@@ -9,6 +9,16 @@ struct AuthenticationRequest: Identifiable, Sendable {
     /// toggle, because being asked to choose is not a decision the user has the
     /// information to make at connect time.
     let usesStoredPassword: Bool
+    /// The dialog asks for a code together with the password. Used by clients
+    /// that cannot ask for it later; OpenFortiVPN asks once the server does.
+    var collectsCode = false
+    /// The server has asked for a code mid-connection, so the dialog is a
+    /// code-only prompt with a deadline.
+    var serverRequestedCode = false
+    var deadline: Date?
+    /// The previous code was not accepted.
+    var isRetry = false
+    var errorMessage: String?
 
     var id: VPNProfile.ID { profileID }
 }

@@ -11,6 +11,8 @@ final class VPNController {
     /// Set when a connection is requested before the connection service is
     /// enabled, so the window can ask the user to enable it.
     var serviceSetupRequired = false
+    /// How long a code prompt waits before the attempt is abandoned.
+    static let codeRequestTimeout: Duration = .seconds(120)
     var connectionLogs: [VPNProfile.ID: String] = [:]
     private var runtimeStates: [VPNProfile.ID: VPNRuntimeState] = [:]
 
@@ -28,6 +30,16 @@ final class VPNController {
     private var statusRequests: [VPNProfile.ID: UUID] = [:]
     @ObservationIgnored
     private var startingProfiles: Set<VPNProfile.ID> = []
+    @ObservationIgnored
+    private var codeTimeouts: [VPNProfile.ID: Task<Void, Never>] = [:]
+    @ObservationIgnored
+    private var codesRequested: [VPNProfile.ID: Int] = [:]
+    @ObservationIgnored
+    private var ignoringCodePrompt: Set<VPNProfile.ID> = []
+    /// Called when a server asks for a code, so the app can tell a user who is
+    /// in another window.
+    @ObservationIgnored
+    var onCodeRequested: (@MainActor (String) -> Void)?
 
     init(
         helperManager: any VPNHelperClient,
@@ -114,7 +126,12 @@ final class VPNController {
                 throw VPNConnectionError.missingOpenVPNConfiguration
             }
             // A tunnel failure does not invalidate the password saved in Keychain.
-            switch profile.authentication {
+            // OpenFortiVPN asks for a code itself, after its first attempt, so it
+            // is connected like a password profile.
+            let promptsFor = profile.authentication == .passwordAndOTP && profile.provider == .openFortiVPN
+                ? AuthenticationMethod.password
+                : profile.authentication
+            switch promptsFor {
             case .saml:
                 connect(profile.id)
             case .password:
@@ -130,6 +147,7 @@ final class VPNController {
                     )
                 }
             case .passwordAndOTP:
+                // Other clients take the code with the password, so ask up front.
                 // Defaulting to the stored password when none exists hid the
                 // password field while still requiring one, leaving the first
                 // connection of an OTP profile with no way to authenticate.
@@ -138,7 +156,8 @@ final class VPNController {
                     profileID: profile.id,
                     profileName: profile.name,
                     method: profile.authentication,
-                    usesStoredPassword: hasStoredPassword
+                    usesStoredPassword: hasStoredPassword,
+                    collectsCode: true
                 )
             }
         } catch {
@@ -169,7 +188,7 @@ final class VPNController {
             }
         }
 
-        if request.method == .passwordAndOTP,
+        if request.collectsCode,
            oneTimePassword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             throw AuthenticationValidationError.missingOTP
         }
@@ -183,7 +202,71 @@ final class VPNController {
     }
 
     func cancelAuthentication() {
+        let request = authenticationRequest
         authenticationRequest = nil
+        // A code prompt belongs to a connection that is already running.
+        if let request, request.serverRequestedCode {
+            codeTimeouts.removeValue(forKey: request.profileID)?.cancel()
+            disconnect(request.profileID)
+        }
+    }
+
+    /// Sends the code the server asked for to the running connection.
+    func submitOneTimePassword(_ code: String) throws {
+        guard let request = authenticationRequest, request.serverRequestedCode else { return }
+        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw AuthenticationValidationError.missingOTP }
+
+        let id = request.profileID
+        codeTimeouts.removeValue(forKey: id)?.cancel()
+        authenticationRequest = nil
+        ignoringCodePrompt.insert(id)
+        helperManager.submitOneTimePassword(profileID: id, oneTimePassword: trimmed) { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .success:
+                self.pollStatus(for: id)
+            case .failure(let error):
+                // Let the user try again while the prompt is still open.
+                self.ignoringCodePrompt.remove(id)
+                var retry = request
+                retry.errorMessage = error.localizedDescription
+                self.authenticationRequest = retry
+                self.startCodeTimeout(for: id)
+            }
+        }
+    }
+
+    private func presentCodeRequest(for id: VPNProfile.ID) {
+        guard !ignoringCodePrompt.contains(id), let profile = profiles.first(where: { $0.id == id }),
+              authenticationRequest?.profileID != id || authenticationRequest?.serverRequestedCode != true
+        else { return }
+        let attempts = codesRequested[id, default: 0]
+        codesRequested[id] = attempts + 1
+        authenticationRequest = AuthenticationRequest(
+            profileID: id,
+            profileName: profile.name,
+            method: .passwordAndOTP,
+            usesStoredPassword: true,
+            serverRequestedCode: true,
+            deadline: Date().addingTimeInterval(Double(Self.codeRequestTimeout.components.seconds)),
+            isRetry: attempts > 0
+        )
+        startCodeTimeout(for: id)
+        onCodeRequested?(profile.name)
+    }
+
+    private func startCodeTimeout(for id: VPNProfile.ID) {
+        codeTimeouts[id]?.cancel()
+        codeTimeouts[id] = Task { [weak self] in
+            try? await Task.sleep(for: Self.codeRequestTimeout)
+            guard !Task.isCancelled, let self,
+                  self.authenticationRequest?.profileID == id,
+                  self.authenticationRequest?.serverRequestedCode == true else { return }
+            self.authenticationRequest = nil
+            self.connectionLogs[id, default: ""].append("\nNo code was entered in time, so the connection was cancelled.\n")
+            self.disconnect(id)
+        }
     }
 
     func hasSavedPassword(for profileID: VPNProfile.ID) throws -> Bool {
@@ -329,6 +412,7 @@ final class VPNController {
         runtimeStates[id] = nil
         profiles.removeAll { $0.id == id }
         try? keychain.removePassword(for: id)
+        ProfileIconStore.remove(for: id)
         connectionLogs[id] = nil
         persistProfiles()
     }
@@ -366,12 +450,22 @@ final class VPNController {
                     runtime.interfaceName = status.interfaceName.isEmpty ? nil : status.interfaceName
                     runtime.state = switch HelperSessionState(rawValue: status.state) {
                     case .connecting: .connecting
-                    case .waitingForAuthentication: .waitingForAuthentication
+                    case .waitingForAuthentication, .waitingForOneTimePassword: .waitingForAuthentication
                     case .connected: .connected
                     case .disconnecting: .disconnecting
                     case .failed: status.processIdentifier == 0 ? .failed : .degraded
                     case .disconnected: .disconnected
                     case nil: status.processIdentifier == 0 ? .disconnected : .degraded
+                    }
+                }
+
+                if status.state == HelperSessionState.waitingForOneTimePassword.rawValue,
+                   status.processIdentifier != 0 {
+                    self.presentCodeRequest(for: id)
+                } else {
+                    self.ignoringCodePrompt.remove(id)
+                    if status.state != HelperSessionState.connecting.rawValue {
+                        self.dismissCodeRequest(for: id)
                     }
                 }
 
@@ -381,7 +475,7 @@ final class VPNController {
                 }
 
                 let transitionalStates: Set<HelperSessionState> = [
-                    .connecting, .waitingForAuthentication, .disconnecting
+                    .connecting, .waitingForAuthentication, .waitingForOneTimePassword, .disconnecting
                 ]
                 if status.processIdentifier != 0
                     || HelperSessionState(rawValue: status.state).map(transitionalStates.contains) == true {
@@ -402,6 +496,15 @@ final class VPNController {
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             self?.pollStatus(for: id)
+        }
+    }
+
+    /// The connection moved on without the code (finished, failed or stopped).
+    private func dismissCodeRequest(for id: VPNProfile.ID) {
+        codeTimeouts.removeValue(forKey: id)?.cancel()
+        codesRequested[id] = nil
+        if authenticationRequest?.profileID == id, authenticationRequest?.serverRequestedCode == true {
+            authenticationRequest = nil
         }
     }
 

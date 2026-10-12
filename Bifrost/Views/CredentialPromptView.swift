@@ -20,7 +20,25 @@ struct CredentialPromptView: View {
 
             // Both inputs are masked, so each one states what it is. Without a
             // heading a lone OTP box reads as an ordinary password prompt.
-            if request.usesStoredPassword {
+            if request.serverRequestedCode {
+                field(
+                    title: "One-time password",
+                    prompt: "Code from the server",
+                    text: $oneTimePassword,
+                    field: .otp
+                ) {
+                    Text(request.isRetry
+                         ? "The server asked for a code again. Enter the newest one."
+                         : "The server has sent you a code, for example by email. Enter it to finish connecting.")
+                        .font(.caption11)
+                        .foregroundStyle(Theme.Palette.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let deadline = request.deadline {
+                    Countdown(deadline: deadline)
+                }
+            } else if request.usesStoredPassword {
                 Label("Using the password saved in your Keychain.", systemImage: "key.fill")
                     .font(.caption12)
                     .foregroundStyle(Theme.Palette.textSecondary)
@@ -43,7 +61,7 @@ struct CredentialPromptView: View {
                 }
             }
 
-            if request.method == .passwordAndOTP {
+            if request.collectsCode {
                 field(
                     title: "One-time password",
                     prompt: "Code from your authenticator",
@@ -57,8 +75,8 @@ struct CredentialPromptView: View {
                 }
             }
 
-            if let validationMessage {
-                Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
+            if let message = validationMessage ?? request.errorMessage {
+                Label(message, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption12)
                     .foregroundStyle(ConnectionState.failed.tone)
                     .padding(.horizontal, 12)
@@ -77,7 +95,7 @@ struct CredentialPromptView: View {
                 .buttonStyle(.quiet)
                 .keyboardShortcut(.cancelAction)
 
-                Button("Connect") { submit() }
+                Button(request.serverRequestedCode ? "Continue" : "Connect") { submit() }
                     .buttonStyle(.accent(Theme.Palette.brand))
                     .keyboardShortcut(.defaultAction)
             }
@@ -90,7 +108,7 @@ struct CredentialPromptView: View {
         .interactiveDismissDisabled()
         .animation(Theme.Motion.state, value: validationMessage)
         .onAppear {
-            focused = request.usesStoredPassword ? .otp : .password
+            focused = request.usesStoredPassword || request.serverRequestedCode ? .otp : .password
         }
     }
 
@@ -99,7 +117,7 @@ struct CredentialPromptView: View {
             BrandMark(height: 26)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Authenticate")
+                Text(request.serverRequestedCode ? "Enter the code" : "Authenticate")
                     .font(.viewTitle)
                     .foregroundStyle(Theme.Palette.textPrimary)
                 Text(request.profileName)
@@ -134,6 +152,11 @@ struct CredentialPromptView: View {
 
     private func submit() {
         do {
+            if request.serverRequestedCode {
+                try controller.submitOneTimePassword(oneTimePassword)
+                dismiss()
+                return
+            }
             try controller.submitAuthentication(
                 password: password,
                 oneTimePassword: oneTimePassword,
@@ -143,6 +166,21 @@ struct CredentialPromptView: View {
             dismiss()
         } catch {
             validationMessage = error.localizedDescription
+        }
+    }
+}
+
+/// Time left before the connection attempt is cancelled.
+private struct Countdown: View {
+    let deadline: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = max(0, Int(deadline.timeIntervalSince(context.date).rounded(.up)))
+            Text("Waiting \(remaining / 60):\(String(format: "%02d", remaining % 60)). The connection is cancelled when time runs out.")
+                .font(.caption12)
+                .monospacedDigit()
+                .foregroundStyle(Theme.Palette.textSecondary)
         }
     }
 }

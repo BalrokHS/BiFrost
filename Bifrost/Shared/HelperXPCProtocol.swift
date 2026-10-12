@@ -17,6 +17,7 @@ struct HelperHandshake: Codable, Equatable, Sendable {
     static let protocolVersion = 1
     static let updatePreparation = "update-preparation-v1"
     static let fortiRealm = "forti-realm"
+    static let fortiOneTimePasswordOnRequest = "forti-otp-on-request"
     let version: String
     let protocolVersion: Int
     let capabilities: Set<String>
@@ -24,7 +25,7 @@ struct HelperHandshake: Codable, Equatable, Sendable {
     static let current = HelperHandshake(
         version: HelperConstants.executionHelperVersion,
         protocolVersion: protocolVersion,
-        capabilities: [updatePreparation, fortiRealm]
+        capabilities: [updatePreparation, fortiRealm, fortiOneTimePasswordOnRequest]
     )
 
     var isCompatible: Bool { protocolVersion == Self.protocolVersion }
@@ -54,6 +55,8 @@ struct HelperHandshake: Codable, Equatable, Sendable {
 enum HelperSessionState: String, Codable, Sendable {
     case connecting
     case waitingForAuthentication
+    /// The client is waiting at its prompt for a code the server has just sent.
+    case waitingForOneTimePassword
     case connected
     case disconnecting
     case failed
@@ -99,6 +102,14 @@ enum HelperSessionState: String, Codable, Sendable {
         oneTimePassword: String,
         dnsServers: [String],
         dnsDomains: [String],
+        reply: @escaping @Sendable (Bool, String) -> Void
+    )
+
+    /// Answers an OpenFortiVPN prompt for a code. Only valid while the session
+    /// reports `waitingForOneTimePassword`.
+    func submitOneTimePassword(
+        profileID: String,
+        oneTimePassword: String,
         reply: @escaping @Sendable (Bool, String) -> Void
     )
 
