@@ -8,6 +8,9 @@ final class VPNController {
     var profiles: [VPNProfile]
     var storageErrorMessage: String?
     var authenticationRequest: AuthenticationRequest?
+    /// Set when a connection is requested before the connection service is
+    /// enabled, so the window can ask the user to enable it.
+    var serviceSetupRequired = false
     var connectionLogs: [VPNProfile.ID: String] = [:]
     private var runtimeStates: [VPNProfile.ID: VPNRuntimeState] = [:]
 
@@ -101,6 +104,11 @@ final class VPNController {
         guard profiles.contains(where: { $0.id == profile.id }) else { return }
         let currentState = state(for: profile)
         guard currentState == .disconnected || currentState == .failed else { return }
+        helperManager.refreshStatus()
+        guard helperManager.isEnabled else {
+            serviceSetupRequired = true
+            return
+        }
         do {
             if profile.provider == .openVPN, profile.configurationPath == nil {
                 throw VPNConnectionError.missingOpenVPNConfiguration

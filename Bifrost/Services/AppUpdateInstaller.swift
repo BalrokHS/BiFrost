@@ -2,7 +2,6 @@ import AppKit
 import Foundation
 import Observation
 import Security
-import UniformTypeIdentifiers
 
 struct AppUpdateFailure: LocalizedError {
     let message: String
@@ -26,7 +25,7 @@ enum UnsignedRelease {
               bundle.object(forInfoDictionaryKey: "BifrostDistribution") as? String == "adhoc-v1",
               let build = buildNumber(bundle.object(forInfoDictionaryKey: "CFBundleVersion")),
               build > currentBuild else {
-            throw AppUpdateFailure(message: "Choose a newer unsigned Bifrost release from its mounted disk image.")
+            throw AppUpdateFailure(message: "The downloaded app is not a newer Bifrost release.")
         }
         let plistName = "gr.klianos.bifrost.helper.unsigned.\(build).plist"
         guard bundle.object(forInfoDictionaryKey: "BifrostHelperDaemonPlist") as? String == plistName else {
@@ -145,7 +144,6 @@ final class AppUpdateInstaller {
     private(set) var phase: Phase = .idle
     private(set) var available: UpdateFeed.Release?
     private(set) var upToDate = false
-    private(set) var readyIsVerified = false
     var errorMessage: String?
     private let helper: PrivilegedHelperManager
     private var transaction: AppBundleReplacement?
@@ -160,38 +158,23 @@ final class AppUpdateInstaller {
         return phase == .waiting
     }
     var currentBuild: Int64? { UnsignedRelease.buildNumber(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion")) }
+    var currentVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+    }
     var detail: String {
         switch phase {
         case .idle:
-            if let available { "Build \(available.build) is available. You have build \(currentBuild ?? 0)." }
-            else if upToDate { "Bifrost is up to date (build \(currentBuild ?? 0))." }
-            else { "Check for updates, or mount a downloaded Bifrost disk image and choose the app inside it." }
+            if let available { "Version \(available.version) is available. You have version \(currentVersion)." }
+            else if upToDate { "Bifrost is up to date (version \(currentVersion))." }
+            else { "You have version \(currentVersion). Check whether a newer release is available." }
         case .checking: "Checking for updates…"
         case .downloading: "Downloading and verifying the update…"
         case .staging: "Checking and staging the downloaded app…"
-        case .ready(let build) where readyIsVerified:
-            "Build \(build) was verified against Bifrost's release key and is ready to install."
-        case .ready(let build): "Build \(build) is ready. Install only a release you obtained from a trusted source; unsigned releases do not identify their publisher."
+        case .ready(let build):
+            "Version \(UpdateFeed.version(forBuild: build)) was verified against Bifrost's release key and is ready to install."
         case .waiting: "Waiting for VPN sessions to finish. Disconnect when convenient, or cancel to start new connections."
         case .installing: "Installing Bifrost and preparing its connection service…"
         case .finished: "The new Bifrost app is opening. macOS may ask you to approve its connection service."
-        }
-    }
-
-    func chooseRelease() {
-        guard phase == .idle else { return }
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.applicationBundle]
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.prompt = "Choose update"
-        guard panel.runModal() == .OK, let source = panel.url else { return }
-        phase = .staging
-        errorMessage = nil
-        readyIsVerified = false
-        Task {
-            do { try await stage(source: source, expectedBuild: nil) }
-            catch { fail(error) }
         }
     }
 
@@ -232,7 +215,6 @@ final class AppUpdateInstaller {
         guard phase == .idle, let release = available else { return }
         phase = .downloading
         errorMessage = nil
-        readyIsVerified = false
         Task {
             var mountPoint: URL?
             var folder: URL?
@@ -255,7 +237,6 @@ final class AppUpdateInstaller {
                 let mounted = try await Task.detached { try DiskImage.attach(image) }.value
                 mountPoint = mounted
                 try await stage(source: mounted.appendingPathComponent("Bifrost.app"), expectedBuild: release.build)
-                readyIsVerified = true
             } catch { fail(error) }
             if let mountPoint { DiskImage.detach(mountPoint) }
             if let folder { try? FileManager.default.removeItem(at: folder) }
@@ -274,14 +255,14 @@ final class AppUpdateInstaller {
         return destination
     }
 
-    private func stage(source: URL, expectedBuild: Int64?) async throws {
+    private func stage(source: URL, expectedBuild: Int64) async throws {
         let destination = Bundle.main.bundleURL.resolvingSymlinksInPath()
         guard FileManager.default.isWritableFile(atPath: destination.deletingLastPathComponent().path),
               FileManager.default.isWritableFile(atPath: destination.path),
               let currentBuild,
               !source.resolvingSymlinksInPath().path.hasPrefix(destination.path + "/"),
               source.resolvingSymlinksInPath() != destination else {
-            throw AppUpdateFailure(message: "Run Bifrost from a writable installed location, then choose a different, newer app from the downloaded disk image.")
+            throw AppUpdateFailure(message: "Run Bifrost from a writable installed location, such as Applications, to install updates.")
         }
         let directory = destination.deletingLastPathComponent().appendingPathComponent(".Bifrost-update-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
@@ -291,7 +272,7 @@ final class AppUpdateInstaller {
             try FileManager.default.copyItem(at: source, to: staged)
             return try UnsignedRelease.validate(staged, newerThan: currentBuild)
         }.value
-        if let expectedBuild, build != expectedBuild {
+        if build != expectedBuild {
             throw AppUpdateFailure(message: "The downloaded app does not match the announced release.")
         }
         transaction = AppBundleReplacement(destination: destination, staged: staged, previous: directory.appendingPathComponent("Previous.app"))
@@ -369,7 +350,6 @@ final class AppUpdateInstaller {
         stagingDirectory = nil
         transaction = nil
         updateTask = nil
-        readyIsVerified = false
         phase = .idle
     }
 }

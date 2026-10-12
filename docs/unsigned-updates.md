@@ -4,14 +4,12 @@ Bifrost ships ad-hoc-signed apps, without Developer ID or notarization. This is 
 
 ## User flow
 
-Settings → General → Bifrost updates checks GitHub at most once a day (switchable) or on demand. **Download update** downloads the image and signature, verifies the signature, mounts the image read-only and stages the app; then continue at step 4. The manual flow below still works for images obtained elsewhere.
+Settings → General → Bifrost updates checks GitHub at most once a day (switchable) or on demand. **Download update** downloads the image and signature, verifies the signature, mounts the image read-only and stages the app.
 
-1. Download and mount a Bifrost DMG from a source you trust.
-2. In the **installed** Bifrost app, open Settings → General → Bifrost updates and choose the app inside the mounted image.
-3. Bifrost stages a complete copy on the installation volume and validates its signatures, hardened runtime, identifiers, service definition and increasing build number. It rejects development entitlements. These checks establish integrity and packaging consistency, not publisher authenticity.
-4. Choose **Install and reopen**. Existing VPN sessions continue. New starts are temporarily refused while the update waits for all sessions and pending launches to finish. Cancel releases that restriction.
-5. The helper confirms it is idle, the app unregisters the old service, and the app replaces whole bundles without overwriting running signed binaries. The previous app remains in a hidden `.Bifrost-update-…/Previous.app` directory next to the installation for recovery.
-6. The new app opens and registers its own helper if the service was previously enabled. macOS may require renewed background-item approval. Health is checked after registration and on return from System Settings. A failed replacement or failed app launch attempts rollback; a helper approval failure leaves the new app open for guided setup.
+1. Bifrost stages a complete copy on the installation volume and validates its signatures, hardened runtime, identifiers, service definition and increasing version. It rejects development entitlements. These checks establish integrity and packaging consistency, not publisher authenticity.
+2. Choose **Install and reopen**. Existing VPN sessions continue. New starts are temporarily refused while the update waits for all sessions and pending launches to finish. Cancel releases that restriction.
+3. The helper confirms it is idle, the app unregisters the old service, and the app replaces whole bundles without overwriting running signed binaries. The previous app remains in a hidden `.Bifrost-update-…/Previous.app` directory next to the installation for recovery.
+4. The new app opens and registers its own helper if the service was previously enabled. macOS may require renewed background-item approval. Health is checked after registration and on return from System Settings. A failed replacement or failed app launch attempts rollback; a helper approval failure leaves the new app open for guided setup.
 
 The installation folder must be writable. This flow does not acquire administrator rights to install the app. It never disconnects sessions automatically and never interprets an unresponsive helper as idle. Do not drag a replacement over a running app when using this flow.
 
@@ -22,7 +20,7 @@ The installation folder must be writable. This flow does not acquire administrat
 - Packaged releases use `gr.klianos.bifrost.helper.unsigned.<build>` as the launch daemon label. The XPC endpoint remains stable. The prior registration must be removed before the next release registers, preventing two daemons from competing for that endpoint and avoiding reuse of a prior ad-hoc build's registration identity.
 - Unsigned helpers authorize only the exact code identity of their installed host app. A development-signed client has no special access to an unsigned helper.
 - App replacement, relaunch and rollback run without a root updater. The helper never accepts arbitrary filesystem destinations or downloaded code.
-- Releases come from GitHub Releases (`BalrokHS/BiFrost`, tags `build-<number>`) or from a locally selected app. A downloaded image is authenticated against a pinned Ed25519 key (`UpdateFeed.pinnedPublicKey`) BEFORE it is mounted; an app identifier, HTTPS, or an ad-hoc code signature alone is never sufficient. The staged app must also carry exactly the announced build number.
+- Releases come from GitHub Releases (`BalrokHS/BiFrost`, tags `v<major>.<minor>.<patch>`). A downloaded image is authenticated against a pinned Ed25519 key (`UpdateFeed.pinnedPublicKey`) BEFORE it is mounted; an app identifier, HTTPS, or an ad-hoc code signature alone is never sufficient. The staged app must also carry exactly the announced version.
 
 ## Migration from the VPNConfigurator identifiers
 
@@ -37,7 +35,10 @@ If an old app has already been overwritten and its service cannot be reached, re
 ## Publishing a release
 
 1. One time: `swift script/release_signing.swift generate` creates the Ed25519 key in the login Keychain and prints the public key. Put it in `UpdateFeed.pinnedPublicKey`. Back up the private key (`export-private`) in a password manager. **If it is lost, installed copies can never verify another update.** Rotating the key needs a manually installed release.
-2. Describe the changes under `## [Unreleased]` in `CHANGELOG.md`, commit, then run `./script/publish_release.sh`. It refuses to run if that section is empty. It packages the image, signs it, and creates the `build-<N>` release with `Bifrost-unsigned.dmg` and `Bifrost-unsigned.dmg.sig`, using the changelog section as the release notes. Afterwards it moves those notes under a `Build <N>` heading and commits and pushes `CHANGELOG.md`.
+2. Raise `MARKETING_VERSION` in the Xcode project (all four configurations, and `BifrostHelper/Info.plist`). That version is the single source of truth: the tag, the release title and the in-app version all come from it.
+3. Describe the changes under `## [Unreleased]` in `CHANGELOG.md`, commit, then run `./script/publish_release.sh`. It refuses to run if that section is empty or if the `v<version>` release already exists. It packages the image, signs it, and creates the `v<version>` release with `Bifrost.dmg` and `Bifrost.dmg.sig`, using the changelog section as the release notes. Afterwards it moves those notes under a `<version>` heading and commits and pushes `CHANGELOG.md`.
+
+The integer build number in `CFBundleVersion` orders releases and names the helper registration. It is derived from the version as `major * 1000000 + minor * 1000 + patch` (0.2.0 is build 2000), so each part must stay below 1000 and a higher version is always a higher build. `script/release_version.sh` prints both.
 
 ### Publishing from GitHub Actions
 
@@ -45,6 +46,6 @@ If an old app has already been overwritten and its service cannot be reached, re
 
 ## Release and verification
 
-`BIFROST_BUILD_NUMBER=123 ./script/package_unsigned_dmg.sh` produces `dist/Bifrost-unsigned.dmg`. Choose a build number higher than every previously published build; do not reuse a published build number for different bytes. Without an override, the Unix timestamp is used. The app's release metadata and service label are set before the app is sealed. App and helper have ad-hoc signatures with hardened runtime and no debugger entitlement. Xcode builds also use ad-hoc signing by default, but distributable updates must go through packaging.
+`./script/package_unsigned_dmg.sh` produces `dist/Bifrost.dmg` for the current `MARKETING_VERSION`. Raise the version for every published release; never reuse a published version for different bytes. The app's release metadata and service label are set before the app is sealed. App and helper have ad-hoc signatures with hardened runtime and no debugger entitlement. Xcode builds also use ad-hoc signing by default, but distributable updates must go through packaging.
 
-Run `./script/test.sh` for protocol, preparation, pending-launch, cancellation/lease-expiry, bundle replacement and rollback regressions. Set `BIFROST_TEST_RELEASE=/path/to/Bifrost.app` to additionally validate an actual packaged release and reject a tampered copy. Live upgrade QA must install one packaged unsigned build, enable and health-check its service, then use its update UI to install a second higher-numbered packaged build. Verify the old daemon label is absent and the new helper responds. Test active-session waiting with a disposable VPN separately; the automated helper tests use harmless processes and simulated sessions, not real gateways.
+Run `./script/test.sh` for protocol, preparation, pending-launch, cancellation/lease-expiry, bundle replacement and rollback regressions. Set `BIFROST_TEST_RELEASE=/path/to/Bifrost.app` to additionally validate an actual packaged release and reject a tampered copy. Live upgrade QA must install one packaged unsigned build, enable and health-check its service, then use its update UI to install a second higher-versioned packaged build. Verify the old daemon label is absent and the new helper responds. Test active-session waiting with a disposable VPN separately; the automated helper tests use harmless processes and simulated sessions, not real gateways.

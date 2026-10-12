@@ -86,7 +86,7 @@ struct MenuBarView: View {
 
     private func toggle(_ profile: VPNProfile) {
         controller.toggle(profile)
-        if controller.authenticationRequest != nil {
+        if controller.authenticationRequest != nil || controller.serviceSetupRequired {
             openWindow(id: "main")
             NSApplication.shared.activate()
         }

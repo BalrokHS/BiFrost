@@ -37,17 +37,28 @@ private struct ControllerRegressionTests {
 
         static func updateFeedTests() {
         let json = { (tag: String, extra: String) in Data("{\"tag_name\":\"\(tag)\"\(extra)}".utf8) }
-        check(UpdateFeed.parseLatest(json("build-123", "")) == UpdateFeed.Release(tag: "build-123", build: 123),
-              "feed parses build tags")
-        check(UpdateFeed.parseLatest(json("v1.2.3", "")) == nil, "feed rejects tags that are not build-<number>")
-        check(UpdateFeed.parseLatest(json("build-0", "")) == nil, "feed rejects zero build numbers")
-        check(UpdateFeed.parseLatest(json("build-1/../x", "")) == nil, "feed rejects path-like tags")
-        check(UpdateFeed.parseLatest(json("build-5", ",\"draft\":true")) == nil, "feed ignores drafts")
-        check(UpdateFeed.parseLatest(json("build-5", ",\"prerelease\":true")) == nil, "feed ignores prereleases")
+        check(UpdateFeed.parseLatest(json("v1.2.3", "")) == UpdateFeed.Release(tag: "v1.2.3", version: "1.2.3", build: 1_002_003),
+              "feed parses version tags")
+        check(UpdateFeed.parseLatest(json("v0.2.0", ""))?.build == 2000, "0.2.0 is build 2000")
+        check(UpdateFeed.version(forBuild: 1_002_003) == "1.2.3" && UpdateFeed.version(forBuild: 2000) == "0.2.0",
+              "builds map back to their version")
+        check(UpdateFeed.build(forVersion: "0.10.0")! > UpdateFeed.build(forVersion: "0.9.9")!
+              && UpdateFeed.build(forVersion: "1.0.0")! > UpdateFeed.build(forVersion: "0.999.999")!,
+              "version order matches build order")
+        check(UpdateFeed.parseLatest(json("build-123", "")) == nil, "feed rejects the old build-<number> tags")
+        check(UpdateFeed.parseLatest(json("v0.0.0", "")) == nil, "feed rejects version zero")
+        check(UpdateFeed.parseLatest(json("v1.2", "")) == nil && UpdateFeed.parseLatest(json("v1.2.3.4", "")) == nil,
+              "feed requires major.minor.patch")
+        check(UpdateFeed.parseLatest(json("v1.02.3", "")) == nil && UpdateFeed.parseLatest(json("v1.2.1000", "")) == nil,
+              "feed rejects padded and out-of-range parts")
+        check(UpdateFeed.parseLatest(json("v1.2.3-beta", "")) == nil && UpdateFeed.parseLatest(json("v1.2./../3", "")) == nil,
+              "feed rejects suffixes and path-like tags")
+        check(UpdateFeed.parseLatest(json("v0.2.0", ",\"draft\":true")) == nil, "feed ignores drafts")
+        check(UpdateFeed.parseLatest(json("v0.2.0", ",\"prerelease\":true")) == nil, "feed ignores prereleases")
         check(UpdateFeed.parseLatest(Data("not json".utf8)) == nil, "feed rejects malformed responses")
-        let release = UpdateFeed.Release(tag: "build-7", build: 7)
+        let release = UpdateFeed.Release(tag: "v0.2.0", version: "0.2.0", build: 2000)
         check(UpdateFeed.assetURL(for: release, name: UpdateFeed.imageName).absoluteString
-              == "https://github.com/\(UpdateFeed.repository)/releases/download/build-7/Bifrost-unsigned.dmg",
+              == "https://github.com/\(UpdateFeed.repository)/releases/download/v0.2.0/Bifrost.dmg",
               "asset URLs are derived from the validated tag")
 
         let key = Curve25519.Signing.PrivateKey()
@@ -184,6 +195,20 @@ private struct ControllerRegressionTests {
         check(helper.stopReplies.count == 1, "pending disconnect is delivered after launch")
         helper.stopReplies.removeFirst()(.success("stopped"))
         helper.status("disconnected")
+
+        let gatedHelper = MockHelper()
+        gatedHelper.isEnabled = false
+        let gatedProfile = VPNProfile(name: "Gated", server: "example.com", provider: .openFortiVPN, authentication: .saml)
+        let gatedController = VPNController(helperManager: gatedHelper, initialProfiles: [gatedProfile])
+        gatedController.requestConnection(gatedProfile)
+        check(gatedController.serviceSetupRequired && gatedHelper.startReplies.isEmpty
+              && gatedController.state(for: gatedProfile) == .disconnected,
+              "connecting without the connection service asks for setup and starts nothing")
+        gatedHelper.isEnabled = true
+        gatedController.serviceSetupRequired = false
+        gatedController.requestConnection(gatedProfile)
+        check(!gatedController.serviceSetupRequired && gatedHelper.startReplies.count == 1,
+              "connecting with the connection service enabled starts normally")
 
         for method in [AuthenticationMethod.password, .passwordAndOTP] {
             let reconnectHelper = MockHelper()

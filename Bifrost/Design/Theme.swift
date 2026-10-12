@@ -33,6 +33,7 @@ enum Theme {
 
     enum Metrics {
         static let headerHeight: CGFloat = 44
+        static let titleBarHeight: CGFloat = 28
         static let gutter: CGFloat = 20
     }
 

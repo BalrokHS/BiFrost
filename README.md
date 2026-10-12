@@ -24,7 +24,7 @@
 
 ## Install
 
-Requires macOS 26 or later. Download `Bifrost-unsigned.dmg` from the [latest release](https://github.com/BalrokHS/BiFrost/releases/latest), then drag **Bifrost** into **Applications**.
+Requires macOS 26 or later. Download `Bifrost.dmg` from the [latest release](https://github.com/BalrokHS/BiFrost/releases/latest), then drag **Bifrost** into **Applications**.
 
 Bifrost is ad-hoc signed and not notarized, so macOS blocks the first launch:
 

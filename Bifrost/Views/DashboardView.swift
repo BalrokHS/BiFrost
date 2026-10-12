@@ -2,9 +2,12 @@ import SwiftUI
 
 struct DashboardView: View {
     @Environment(VPNController.self) private var controller
-    let openSettings: () -> Void
+    @Environment(PrivilegedHelperManager.self) private var helperManager
+    let openSettings: (SettingsDestination) -> Void
 
     @State private var showingNewProfile = false
+    @State private var promptingForService = false
+    @State private var inventory: EngineInventory?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,11 +26,47 @@ struct DashboardView: View {
                 .frame(maxWidth: .infinity, alignment: .topLeading)
             }
             .scrollContentBackground(.hidden)
+            .sheet(isPresented: $showingNewProfile) {
+                ProfileEditorView()
+                    .environment(controller)
+            }
         }
         .navigationTitle("Dashboard")
-        .sheet(isPresented: $showingNewProfile) {
-            ProfileEditorView()
-                .environment(controller)
+        .alert("Enable VPN connections first", isPresented: $promptingForService) {
+            Button("Cancel", role: .cancel) {}
+            Button("Enable VPN connections") { enableService(thenAddProfile: true) }
+        } message: {
+            Text("Bifrost starts tunnels through a background connection service. Enable it, then add your profile. macOS may ask you to approve it in System Settings.")
+        }
+        .onChange(of: helperManager.isEnabled) { _, enabled in
+            // The service came up while the prompt was open, so it is stale.
+            if enabled { promptingForService = false }
+        }
+        .task(id: guideIsVisible && helperManager.isEnabled) {
+            guard guideIsVisible, helperManager.isEnabled else { return }
+            let inventory = inventory ?? EngineInventory(helper: helperManager)
+            self.inventory = inventory
+            inventory.refresh()
+        }
+    }
+
+    // MARK: - Actions
+
+    /// Adding a profile needs the connection service, so ask for it up front
+    /// rather than letting the first connection fail later.
+    private func addProfile() {
+        helperManager.refreshStatus()
+        if helperManager.isEnabled {
+            showingNewProfile = true
+        } else {
+            promptingForService = true
+        }
+    }
+
+    private func enableService(thenAddProfile: Bool = false) {
+        helperManager.register()
+        if thenAddProfile, helperManager.isEnabled {
+            showingNewProfile = true
         }
     }
 
@@ -59,25 +98,21 @@ struct DashboardView: View {
                     .buttonStyle(.quietCompact)
             }
 
-            Button {
-                showingNewProfile = true
-            } label: {
+            Button(action: addProfile) {
                 Label("Add profile", systemImage: "plus")
             }
             .buttonStyle(.accentCompact)
             .keyboardShortcut("n", modifiers: .command)
             .help("Add a VPN profile")
 
-            Button(action: openSettings) {
+            Button { openSettings(.general) } label: {
                 Label("Settings", systemImage: "gearshape")
             }
             .buttonStyle(.iconAction)
             .keyboardShortcut(",", modifiers: .command)
             .help("Settings")
         }
-        // Clears the window controls, which sit over the hidden title bar.
-        .padding(.leading, 78)
-        .padding(.trailing, Theme.Metrics.gutter)
+        .padding(.horizontal, Theme.Metrics.gutter)
         .frame(height: Theme.Metrics.headerHeight)
         .animation(Theme.Motion.state, value: controller.disconnectableProfiles.count)
     }
@@ -94,31 +129,86 @@ struct DashboardView: View {
         .mattePanel()
     }
 
-    // MARK: - Empty state
+    // MARK: - Getting started
+
+    private var guideIsVisible: Bool { controller.profiles.isEmpty }
+
+    private var serviceDone: Bool { helperManager.isEnabled }
+
+    private var engineDone: Bool {
+        inventory?.reports.contains { $0.state == .ready } == true
+    }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("No VPN profiles yet")
-                    .font(.panelTitle)
-                    .foregroundStyle(Theme.Palette.textPrimary)
+        SettingsCard("Get started") {
+            SettingsNote("Three steps to your first connection.")
 
-                Text("Create one from scratch, or import an existing OpenVPN, OpenConnect or OpenFortiVPN configuration.")
-                    .font(.caption12)
-                    .foregroundStyle(Theme.Palette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: 420, alignment: .leading)
+            HairlineRule()
 
-            Button {
-                showingNewProfile = true
-            } label: {
-                Label("Add profile", systemImage: "plus")
+            guideStep(
+                1,
+                done: serviceDone,
+                title: "Enable VPN connections",
+                detail: "Turns on the background service Bifrost uses to start tunnels."
+            ) {
+                switch helperManager.status {
+                case .requiresApproval:
+                    guideButton("Approve in System Settings", primary: true) {
+                        helperManager.openApprovalSettings()
+                    }
+                default:
+                    guideButton("Enable VPN connections", primary: true) { enableService() }
+                }
             }
-            .buttonStyle(.accent)
+
+            HairlineRule()
+
+            guideStep(
+                2,
+                done: engineDone,
+                title: "Approve a VPN client",
+                detail: "Pick an installed OpenFortiVPN, OpenVPN or OpenConnect client that Bifrost may run."
+            ) {
+                guideButton("Open VPN engines", primary: serviceDone) { openSettings(.engines) }
+            }
+
+            HairlineRule()
+
+            guideStep(
+                3,
+                done: false,
+                title: "Add your first profile",
+                detail: "Create one from scratch, or import an existing OpenVPN configuration."
+            ) {
+                guideButton("Add profile", primary: serviceDone && engineDone, action: addProfile)
+            }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .mattePanel()
+    }
+
+    /// Only the step the user should do next gets the accent.
+    @ViewBuilder
+    private func guideButton(_ title: String, primary: Bool, action: @escaping () -> Void) -> some View {
+        if primary {
+            Button(title, action: action).buttonStyle(.accentCompact)
+        } else {
+            Button(title, action: action).buttonStyle(.quietCompact)
+        }
+    }
+
+    private func guideStep<Control: View>(
+        _ number: Int,
+        done: Bool,
+        title: String,
+        detail: String,
+        @ViewBuilder control: @escaping () -> Control
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            StepMarker(number: number, done: done)
+                .padding(.top, 1)
+
+            SettingsRow(title, detail: detail) {
+                if !done { control() }
+            }
+        }
     }
 }

@@ -1,6 +1,20 @@
 import AppKit
 import SwiftUI
 
+enum SettingsDestination: String, CaseIterable, Identifiable {
+    case general = "General"
+    case engines = "VPN engines"
+
+    var id: Self { self }
+
+    var symbol: String {
+        switch self {
+        case .general: "slider.horizontal.3"
+        case .engines: "cpu"
+        }
+    }
+}
+
 struct AppSettingsView: View {
     @Environment(PrivilegedHelperManager.self) private var helperManager
 
@@ -8,6 +22,11 @@ struct AppSettingsView: View {
     @AppStorage("automaticUpdateChecks") private var automaticUpdateChecks = true
 
     let onClose: () -> Void
+
+    init(start: SettingsDestination = .general, onClose: @escaping () -> Void) {
+        _selection = State(initialValue: start)
+        self.onClose = onClose
+    }
 
     @AppStorage("launchAtLogin") private var launchAtLogin = false
     @AppStorage("showNotifications") private var showNotifications = true
@@ -18,21 +37,6 @@ struct AppSettingsView: View {
     @State private var selection: SettingsDestination = .general
     @State private var selectedEngine: VPNEngine = .openFortiVPN
     @State private var lastRefresh = Date.now
-
-    private enum SettingsDestination: String, CaseIterable, Identifiable {
-        case general = "General"
-        case engines = "VPN engines"
-
-        var id: Self { self }
-
-        var symbol: String {
-            switch self {
-            case .general: "slider.horizontal.3"
-            case .engines: "cpu"
-            }
-        }
-
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -105,9 +109,7 @@ struct AppSettingsView: View {
 
             BrandLockup()
         }
-        // Clears the window controls, which sit over the hidden title bar.
-        .padding(.leading, 78)
-        .padding(.trailing, Theme.Metrics.gutter)
+        .padding(.horizontal, Theme.Metrics.gutter)
         .frame(height: Theme.Metrics.headerHeight)
     }
 
@@ -346,11 +348,6 @@ struct AppSettingsView: View {
                     Button("Check for updates") { Task { await updater.checkForUpdates() } }
                         .buttonStyle(.quiet)
                         .disabled(updater.isBusy)
-                }
-                if case .ready = updater.phase {} else {
-                    Button("Choose downloaded app…") { updater.chooseRelease() }
-                        .buttonStyle(.quiet)
-                        .disabled(updater.isBusy || helperManager.isChangingRegistration)
                 }
                 if updater.canCancel {
                     Button("Cancel update") { updater.cancel() }.buttonStyle(.quiet)

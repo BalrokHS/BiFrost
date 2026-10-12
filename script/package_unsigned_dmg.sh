@@ -3,19 +3,16 @@ set -euo pipefail
 
 APP_NAME="Bifrost"
 SCHEME="Bifrost"
-# Every published build needs a new increasing number. CI can supply its own.
-RELEASE_BUILD="${BIFROST_BUILD_NUMBER:-$(date +%s)}"
-if [[ ! "$RELEASE_BUILD" =~ ^[1-9][0-9]{0,17}$ ]]; then
-  echo "error: BIFROST_BUILD_NUMBER must be a positive integer (at most 18 digits)" >&2
-  exit 1
-fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The marketing version is the truth; the build number is derived from it, so
+# publishing the same version twice is refused rather than reusing a build.
+read -r RELEASE_VERSION RELEASE_BUILD < <("$ROOT_DIR/script/release_version.sh")
 DERIVED_DATA="$ROOT_DIR/DerivedData/UnsignedRelease"
 PRODUCTS_DIR="$DERIVED_DATA/Build/Products/Release"
 APP_BUNDLE="$PRODUCTS_DIR/$APP_NAME.app"
 DIST_DIR="$ROOT_DIR/dist"
 STAGING_DIR="$DIST_DIR/dmg-root"
-DMG_PATH="$DIST_DIR/$APP_NAME-unsigned.dmg"
+DMG_PATH="$DIST_DIR/$APP_NAME.dmg"
 
 rm -rf "$DERIVED_DATA" "$STAGING_DIR"
 mkdir -p "$DIST_DIR" "$STAGING_DIR"

@@ -113,6 +113,32 @@ struct IconBadge: View {
     }
 }
 
+/// A numbered step that turns into a check once it is done.
+struct StepMarker: View {
+    let number: Int
+    let done: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .strokeBorder(done ? Theme.Palette.textSecondary : Theme.Palette.hairlineBright, lineWidth: 1)
+
+            if done {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.textPrimary)
+            } else {
+                Text("\(number)")
+                    .font(.system(size: 10.5, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.Palette.textSecondary)
+            }
+        }
+        .frame(width: 20, height: 20)
+        .accessibilityLabel(done ? "Step \(number), done" : "Step \(number)")
+    }
+}
+
 // MARK: - Readouts
 
 /// A running `hh:mm:ss` counter since a fixed instant.
