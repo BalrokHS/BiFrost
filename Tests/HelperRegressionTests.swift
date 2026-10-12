@@ -126,18 +126,27 @@ static func duplicateStartTests() throws {
     check(replied.wait(timeout: .now() + 3) == .success, "stop replies")
 }
 
-/// An OpenFortiVPN-style client: prompts for a code with no trailing newline,
-/// reads it from stdin, and accepts only one value.
+/// An OpenFortiVPN-style client: it asks Bifrost's pinentry program for the
+/// code with the same commands OpenFortiVPN sends, and accepts only one value.
 static func oneTimePasswordPromptTests() throws {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
+    let codeFile = directory.appendingPathComponent("answer.code")
+    let pinentry = directory.appendingPathComponent("pinentry.sh")
+    try SecureRuntimeFiles.pinentryScript(codeFile: codeFile.path).write(to: pinentry, atomically: true, encoding: .utf8)
+    chmod(pinentry.path, 0o700)
+
+    // The program speaks the exchange OpenFortiVPN uses: greeting, four setup
+    // commands, GETPIN answered with "D <code>" then "OK".
     let script = directory.appendingPathComponent("fake-forti.sh")
     try """
     #!/bin/sh
-    printf 'Two-factor authentication token: '
-    read code
-    if [ "$code" = "424242" ]; then echo "Code accepted"; else echo "Code rejected"; fi
+    out=$(printf 'SETTITLE t\nSETDESC d\nSETKEYINFO k\nSETPROMPT p\nGETPIN\nBYE\n' | "$1")
+    case "$out" in
+      *"D 424242"*) echo "Code accepted" ;;
+      *) echo "Code rejected" ;;
+    esac
     sleep 30
     """.write(to: script, atomically: true, encoding: .utf8)
     chmod(script.path, 0o700)
@@ -145,11 +154,10 @@ static func oneTimePasswordPromptTests() throws {
     let helper = HelperService()
     let process = Process()
     process.executableURL = script
-    let input = Pipe()
-    process.standardInput = input
+    process.arguments = [pinentry.path]
     let session = newSession(process: process)
     session.awaitsOneTimePassword = true
-    session.inputHandle = input.fileHandleForWriting
+    session.oneTimePasswordFile = codeFile
     try helper.queue.sync { try helper.launch(session) }
     defer {
         if process.isRunning { process.terminate() }
@@ -163,7 +171,7 @@ static func oneTimePasswordPromptTests() throws {
         }
         return false
     }
-    check(waitForState(.waitingForOneTimePassword), "a prompt without a trailing newline is recognised")
+    check(waitForState(.waitingForOneTimePassword), "the pinentry request is recognised")
 
     let replied = DispatchSemaphore(value: 0)
     helper.submitOneTimePassword(profileID: "unknown", oneTimePassword: "1") { success, _ in

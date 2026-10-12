@@ -31,6 +31,66 @@ enum SecureRuntimeFiles {
         return url
     }
 
+    /// Written to the client's stderr by the pinentry program when it needs a code.
+    static let codeRequestMarker = "BIFROST_CODE_REQUESTED"
+
+    /// A minimal pinentry (Assuan) program for OpenFortiVPN's `--pinentry`. It
+    /// accepts the setup commands, and on GETPIN reports on stderr that a code is
+    /// wanted, waits for `codeFile` to appear, and answers with its contents.
+    static func pinentryScript(codeFile: String) -> String {
+        """
+        #!/bin/sh
+        CODE_FILE='\(codeFile)'
+        echo "OK Bifrost pinentry ready"
+        while IFS= read -r line; do
+          case "$line" in
+            GETPIN*)
+              echo "\(codeRequestMarker)" >&2
+              while [ ! -s "$CODE_FILE" ]; do sleep 0.3; done
+              IFS= read -r code < "$CODE_FILE"
+              rm -f "$CODE_FILE"
+              printf 'D %s\\n' "$(printf '%s' "$code" | sed 's/%/%25/g')"
+              echo "OK"
+              ;;
+            BYE*)
+              echo "OK"
+              exit 0
+              ;;
+            *)
+              echo "OK"
+              ;;
+          esac
+        done
+        """
+    }
+
+    static func makeOneTimePasswordPinentry(profileID: String) throws -> (script: URL, codeFile: URL) {
+        let directory = URL(fileURLWithPath: "/var/run/bifrost", isDirectory: true)
+        let codeFile = directory.appendingPathComponent("\(profileID)-\(UUID().uuidString).code")
+        let script = try make(
+            profileID: profileID,
+            suffix: "pinentry.sh",
+            data: Data(pinentryScript(codeFile: codeFile.path).utf8)
+        )
+        guard chmod(script.path, 0o700) == 0 else {
+            try? FileManager.default.removeItem(at: script)
+            throw HelperFailure.launchFailed(String(cString: strerror(errno)))
+        }
+        return (script, codeFile)
+    }
+
+    /// Leaves `code` for the pinentry program. Written aside and renamed so the
+    /// program never reads half a code.
+    static func deliverCode(_ code: String, to codeFile: URL) throws {
+        let pending = codeFile.appendingPathExtension("tmp")
+        try? FileManager.default.removeItem(at: pending)
+        try write(Data((code + "\n").utf8), to: pending)
+        guard Darwin.rename(pending.path, codeFile.path) == 0 else {
+            try? FileManager.default.removeItem(at: pending)
+            throw HelperFailure.launchFailed(String(cString: strerror(errno)))
+        }
+    }
+
     static func remove(_ urls: [URL]) {
         for url in urls { try? FileManager.default.removeItem(at: url) }
     }

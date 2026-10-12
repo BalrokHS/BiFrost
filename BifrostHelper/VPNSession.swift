@@ -18,8 +18,8 @@ final class VPNSession: @unchecked Sendable {
     var didProcessConnectedMarker = false
     var didDetectAuthenticationFailure = false
     var didFinish = false
-    /// Kept open so the client's prompt for a code can be answered later.
-    var inputHandle: FileHandle?
+    /// Where a code is left for the client's pinentry program to pick up.
+    var oneTimePasswordFile: URL?
     var awaitsOneTimePassword = false
     var otpSubmissions = 0
 

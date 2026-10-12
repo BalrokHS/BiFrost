@@ -64,8 +64,8 @@ private struct ProcessSpecification: Sendable {
     let dnsDomains: [String]
     let connectedMarkers: [String]
     var standardInput: Data? = nil
-    /// OpenFortiVPN prompts for a code on stdin after the first attempt.
-    var answersOneTimePasswordPrompt = false
+    /// Set when the client may ask for a code through its pinentry program.
+    var oneTimePasswordFile: URL? = nil
     var launchLog: String? = nil
 }
 
@@ -150,6 +150,16 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
                 ]
                 if let realm = gateway.realm { arguments.append("--realm=\(realm)") }
                 if useSAML { arguments.append("--saml-login") }
+                // With no code supplied up front the server may still ask for one
+                // (for example an emailed code sent after the first try). The client
+                // asks through a pinentry program, which waits for the app to send it.
+                var oneTimePasswordFile: URL?
+                if !useSAML, oneTimePassword.isEmpty {
+                    let pinentry = try SecureRuntimeFiles.makeOneTimePasswordPinentry(profileID: profileID)
+                    temporaryURLs.append(contentsOf: [pinentry.script, pinentry.codeFile])
+                    arguments.append("--pinentry=\(pinentry.script.path)")
+                    oneTimePasswordFile = pinentry.codeFile
+                }
                 try launch(ProcessSpecification(
                     clientName: "OpenFortiVPN",
                     executablePath: engine.executablePath,
@@ -158,9 +168,7 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
                     dnsServers: dnsConfiguration.servers,
                     dnsDomains: dnsConfiguration.domains,
                     connectedMarkers: ["Tunnel is up and running"],
-                    // With no code supplied up front the server may still ask for
-                    // one (for example an emailed code sent after the first try).
-                    answersOneTimePasswordPrompt: !useSAML && oneTimePassword.isEmpty
+                    oneTimePasswordFile: oneTimePasswordFile
                 ), profileID: profileID)
                 return "OpenFortiVPN started."
             } catch {
@@ -279,8 +287,6 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         }
     }
 
-    static let oneTimePasswordPrompt = "Two-factor authentication token:"
-
     func submitOneTimePassword(
         profileID: String,
         oneTimePassword: String,
@@ -289,14 +295,14 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         let replyBox = ReplyBox<(Bool, String)> { reply($0.0, $0.1) }
         queue.async { [self] in
             guard let session = sessions[profileID], session.process.isRunning, !session.didFinish,
-                  session.state == .waitingForOneTimePassword, let input = session.inputHandle else {
+                  session.state == .waitingForOneTimePassword, let codeFile = session.oneTimePasswordFile else {
                 replyBox.call((false, "This connection is not waiting for a code."))
                 return
             }
             do {
                 try HelperInputValidator.secret(oneTimePassword)
                 guard !oneTimePassword.isEmpty else { throw HelperFailure.missingCredentials }
-                try input.write(contentsOf: Data((oneTimePassword + "\n").utf8))
+                try SecureRuntimeFiles.deliverCode(oneTimePassword, to: codeFile)
             } catch {
                 replyBox.call((false, error.localizedDescription))
                 return
@@ -515,7 +521,7 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         process.arguments = specification.arguments
         process.environment = secureEnvironment
 
-        let inputPipe = (specification.standardInput != nil || specification.answersOneTimePasswordPrompt) ? Pipe() : nil
+        let inputPipe = specification.standardInput.map { _ in Pipe() }
         process.standardInput = inputPipe ?? FileHandle.nullDevice
         let session = VPNSession(
             profileID: profileID,
@@ -526,10 +532,8 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
             dnsDomains: specification.dnsDomains,
             connectedMarkers: specification.connectedMarkers
         )
-        if specification.answersOneTimePasswordPrompt, let inputPipe {
-            session.awaitsOneTimePassword = true
-            session.inputHandle = inputPipe.fileHandleForWriting
-        }
+        session.oneTimePasswordFile = specification.oneTimePasswordFile
+        session.awaitsOneTimePassword = specification.oneTimePasswordFile != nil
         try launch(session)
 
         if let input = specification.standardInput, let inputPipe {
@@ -598,8 +602,7 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
             session.state = .waitingForAuthentication
         }
         if session.awaitsOneTimePassword, session.state == .connecting || session.state == .waitingForOneTimePassword {
-            // The prompt has no trailing newline, so count it rather than parse lines.
-            let prompts = session.log.components(separatedBy: HelperService.oneTimePasswordPrompt).count - 1
+            let prompts = session.log.components(separatedBy: SecureRuntimeFiles.codeRequestMarker).count - 1
             if prompts > session.otpSubmissions { session.state = .waitingForOneTimePassword }
         }
         if session.log.localizedCaseInsensitiveContains("AUTH_FAILED"),
@@ -655,8 +658,6 @@ final class HelperService: NSObject, HelperXPCProtocol, @unchecked Sendable {
         session.didFinish = true
         session.outputPipe.fileHandleForReading.readabilityHandler = nil
         session.errorPipe.fileHandleForReading.readabilityHandler = nil
-        try? session.inputHandle?.close()
-        session.inputHandle = nil
         for url in session.temporaryURLs { try? FileManager.default.removeItem(at: url) }
         ResolverManager.remove(session.resolverKey, ownedBy: session.profileID)
         if session.stopRequested {
