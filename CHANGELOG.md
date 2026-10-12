@@ -6,6 +6,9 @@ Add entries under **Unreleased** as you work. `script/publish_release.sh` uses t
 
 ## [Unreleased]
 
+### Changed
+- Installing an update while VPN connections are active now asks to disconnect them first. While an update waits for connections to end, the card offers "Disconnect all and continue" instead of a greyed-out download button.
+
 ## 0.2.1 - 2026-10-12
 
 ### Added
