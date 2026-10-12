@@ -19,6 +19,8 @@ struct AppSettingsView: View {
     @Environment(PrivilegedHelperManager.self) private var helperManager
 
     @Environment(AppUpdateInstaller.self) private var updater
+    @Environment(VPNController.self) private var controller
+    @State private var confirmingDisconnectForUpdate = false
     @AppStorage("automaticUpdateChecks") private var automaticUpdateChecks = true
 
     let onClose: () -> Void
@@ -338,8 +340,21 @@ struct AppSettingsView: View {
         SettingsCard("Bifrost updates") {
             SettingsNote(updater.detail)
             HStack {
-                if case .ready = updater.phase {
-                    Button("Install and reopen") { updater.install() }.buttonStyle(.accent)
+                if updater.phase == .waiting {
+                    // The install is held until every tunnel has stopped.
+                    if !controller.disconnectableProfiles.isEmpty {
+                        Button("Disconnect all and continue") { controller.disconnectAll() }
+                            .buttonStyle(.accent)
+                    }
+                } else if case .ready = updater.phase {
+                    Button("Install and reopen") {
+                        if controller.disconnectableProfiles.isEmpty {
+                            updater.install()
+                        } else {
+                            confirmingDisconnectForUpdate = true
+                        }
+                    }
+                    .buttonStyle(.accent)
                 } else if updater.available != nil {
                     Button("Download update") { updater.downloadAndStage() }
                         .buttonStyle(.accent)
@@ -355,6 +370,16 @@ struct AppSettingsView: View {
             }
             Toggle("Check for updates automatically", isOn: $automaticUpdateChecks)
                 .toggleStyle(.checkbox)
+        }
+        .alert("Disconnect VPN connections to update?", isPresented: $confirmingDisconnectForUpdate) {
+            Button("Cancel", role: .cancel) {}
+            Button("Disconnect and install") {
+                controller.disconnectAll()
+                updater.install()
+            }
+        } message: {
+            let count = controller.disconnectableProfiles.count
+            Text("Bifrost can only update once no VPN connection is active. \(count == 1 ? "1 connection" : "\(count) connections") will be disconnected now. Reconnect after Bifrost reopens.")
         }
         .alert("Bifrost update", isPresented: Binding(
             get: { updater.errorMessage != nil },
