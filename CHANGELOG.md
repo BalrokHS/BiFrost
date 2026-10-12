@@ -6,6 +6,9 @@ Add entries under **Unreleased** as you work. `script/publish_release.sh` uses t
 
 ## [Unreleased]
 
+### Fixed
+- OpenFortiVPN codes requested after the first attempt now reach the client. The previous release answered the client's prompt on stdin, which it does not read without a terminal, so the connection failed with "No token specified". Bifrost now answers through the client's pinentry support.
+
 ## 0.2.2 - 2026-10-12
 
 ### Changed
