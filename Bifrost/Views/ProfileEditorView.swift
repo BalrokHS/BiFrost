@@ -374,6 +374,16 @@ struct ProfileEditorView: View {
                     .frame(maxWidth: 360)
             }
 
+            SettingsRow(
+                "Keep-alive host",
+                detail: "Bifrost pings this address through the tunnel every minute while connected, so the gateway's idle timeout does not end it. Leave empty to turn it off."
+            ) {
+                TextField("", text: $draft.keepAliveHost, prompt: Text("10.0.0.53"))
+                    .textFieldStyle(.plain)
+                    .fieldChrome()
+                    .frame(maxWidth: 360)
+            }
+
             SettingsNote("Configured domains are resolved only by this profile's DNS servers. VPN-advertised DNS is ignored. Leave both fields empty to make no DNS changes.")
         }
     }
@@ -616,6 +626,11 @@ struct ProfileEditorView: View {
             message = hasDNSServers == hasDNSDomains
                 ? nil
                 : "Split DNS requires both DNS servers and DNS domains. Leave both empty if this VPN should not change DNS."
+            if message == nil, !VPNKeepAlive.isValid(host: draft.keepAliveHost) {
+                validationMessage = "Enter the keep-alive host as an IP address or host name, or leave it empty."
+                withAnimation(Theme.Motion.state) { currentStep = step }
+                return false
+            }
         case .authentication, .appearance:
             message = nil
         }
@@ -818,6 +833,7 @@ private struct ProfileDraft {
     var serverCertificatePin = ""
     var dnsServers = ""
     var dnsDomains = ""
+    var keepAliveHost = ""
     var accent = ProfileAccent.blue
     var icon = ProfileIcon.avatar
     /// The picture chosen in the editor, written to disk only when the profile is saved.
@@ -836,6 +852,7 @@ private struct ProfileDraft {
         serverCertificatePin = profile.serverCertificatePin ?? ""
         dnsServers = profile.dnsServers.joined(separator: ", ")
         dnsDomains = profile.dnsDomains.joined(separator: ", ")
+        keepAliveHost = profile.keepAliveHost ?? ""
         accent = profile.accent
     }
 
@@ -851,6 +868,7 @@ private struct ProfileDraft {
             serverCertificatePin: optional(serverCertificatePin),
             dnsDomains: list(dnsDomains),
             dnsServers: list(dnsServers),
+            keepAliveHost: optional(keepAliveHost),
             accent: accent,
             // A picture icon with no picture falls back to the avatar.
             icon: icon == .image && iconImage == nil ? .avatar : icon

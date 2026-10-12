@@ -11,6 +11,9 @@ struct VPNProfile: Identifiable, Hashable, Codable, Sendable {
     var serverCertificatePin: String?
     var dnsDomains: [String]
     var dnsServers: [String]
+    /// A host inside the VPN that Bifrost pings while connected, so a gateway
+    /// idle timeout does not end the tunnel. Empty or nil turns it off.
+    var keepAliveHost: String?
     var accent: ProfileAccent
     var icon: ProfileIcon
 
@@ -25,6 +28,7 @@ struct VPNProfile: Identifiable, Hashable, Codable, Sendable {
         serverCertificatePin: String? = nil,
         dnsDomains: [String] = [],
         dnsServers: [String] = [],
+        keepAliveHost: String? = nil,
         accent: ProfileAccent = .blue,
         icon: ProfileIcon = .avatar
     ) {
@@ -38,13 +42,14 @@ struct VPNProfile: Identifiable, Hashable, Codable, Sendable {
         self.serverCertificatePin = serverCertificatePin
         self.dnsDomains = dnsDomains
         self.dnsServers = dnsServers
+        self.keepAliveHost = keepAliveHost
         self.accent = accent
         self.icon = icon
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, server, provider, authentication, username, configurationPath
-        case serverCertificatePin, dnsDomains, dnsServers, accent, icon
+        case serverCertificatePin, dnsDomains, dnsServers, keepAliveHost, accent, icon
     }
 
     init(from decoder: Decoder) throws {
@@ -59,6 +64,7 @@ struct VPNProfile: Identifiable, Hashable, Codable, Sendable {
         serverCertificatePin = try container.decodeIfPresent(String.self, forKey: .serverCertificatePin)
         dnsDomains = try container.decodeIfPresent([String].self, forKey: .dnsDomains) ?? []
         dnsServers = try container.decodeIfPresent([String].self, forKey: .dnsServers) ?? []
+        keepAliveHost = try container.decodeIfPresent(String.self, forKey: .keepAliveHost)
         accent = try container.decodeIfPresent(ProfileAccent.self, forKey: .accent) ?? .blue
         icon = try container.decodeIfPresent(ProfileIcon.self, forKey: .icon) ?? .avatar
     }

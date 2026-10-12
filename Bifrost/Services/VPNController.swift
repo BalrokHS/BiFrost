@@ -31,6 +31,8 @@ final class VPNController {
     @ObservationIgnored
     private var startingProfiles: Set<VPNProfile.ID> = []
     @ObservationIgnored
+    private var keepAliveTasks: [VPNProfile.ID: Task<Void, Never>] = [:]
+    @ObservationIgnored
     private var codeTimeouts: [VPNProfile.ID: Task<Void, Never>] = [:]
     @ObservationIgnored
     private var codesRequested: [VPNProfile.ID: Int] = [:]
@@ -434,6 +436,27 @@ final class VPNController {
             runtime.connectedSince = nil
         }
         runtimeStates[id] = runtime
+        syncKeepAlive(for: id, state: runtime.state)
+    }
+
+    /// Pings the profile's keep-alive host while connected. The ping is bound to
+    /// the tunnel interface, so it counts as tunnel traffic whatever the routes.
+    private func syncKeepAlive(for id: VPNProfile.ID, state: ConnectionState) {
+        guard state == .connected else {
+            keepAliveTasks.removeValue(forKey: id)?.cancel()
+            return
+        }
+        guard keepAliveTasks[id] == nil else { return }
+        keepAliveTasks[id] = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: VPNKeepAlive.interval)
+                guard !Task.isCancelled, let self else { return }
+                let host = self.profiles.first { $0.id == id }?.keepAliveHost
+                let interface = self.runtimeStates[id]?.interfaceName
+                guard let host, let interface, VPNKeepAlive.isValid(host: host) else { continue }
+                await VPNKeepAlive.ping(host: host, interface: interface)
+            }
+        }
     }
 
     private func pollStatus(for id: VPNProfile.ID) {
@@ -599,4 +622,30 @@ private struct VPNRuntimeState: Sendable {
     var state = ConnectionState.disconnected
     var interfaceName: String?
     var connectedSince: Date?
+}
+
+
+/// Sends one ping through a tunnel so a gateway that drops idle sessions sees traffic.
+enum VPNKeepAlive {
+    static let interval: Duration = .seconds(60)
+
+    /// An address or host name. Empty is valid and means no keep-alive.
+    static func isValid(host: String) -> Bool {
+        let trimmed = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return true }
+        return trimmed.range(of: #"^[A-Za-z0-9][A-Za-z0-9.:-]{0,252}$"#, options: .regularExpression) != nil
+    }
+
+    static func ping(host: String, interface: String) async {
+        guard interface.range(of: #"^[a-z]+[0-9]+$"#, options: .regularExpression) != nil else { return }
+        await withCheckedContinuation { continuation in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/sbin/ping")
+            process.arguments = ["-c", "1", "-t", "3", "-b", interface, host.trimmingCharacters(in: .whitespacesAndNewlines)]
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            process.terminationHandler = { _ in continuation.resume() }
+            do { try process.run() } catch { continuation.resume() }
+        }
+    }
 }
