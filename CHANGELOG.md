@@ -6,6 +6,8 @@ Add entries under **Unreleased** as you work. `script/publish_release.sh` uses t
 
 ## [Unreleased]
 
+## 0.2.4 - 2026-10-12
+
 ### Added
 - A keep-alive host in the profile's Network settings. While connected, Bifrost pings it through the tunnel every minute, so a gateway that drops idle sessions (for example after 5 minutes) keeps the connection open.
 
