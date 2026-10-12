@@ -7,9 +7,8 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-                .padding(.horizontal, 14)
-                .padding(.top, 13)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
 
             HairlineRule()
 
@@ -18,10 +17,10 @@ struct MenuBarView: View {
                     .font(.caption12)
                     .foregroundStyle(Theme.Palette.textTertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 18)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 14)
             } else {
-                VStack(spacing: 2) {
+                VStack(spacing: 0) {
                     ForEach(controller.profiles) { profile in
                         MenuProfileRow(
                             profile: profile,
@@ -30,28 +29,23 @@ struct MenuBarView: View {
                         )
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 8)
+                .padding(6)
             }
 
             HairlineRule()
 
             footer
                 .padding(.horizontal, 12)
-                .padding(.vertical, 11)
+                .padding(.vertical, 8)
         }
-        .frame(width: 336)
+        .frame(width: 300)
         .background(Theme.Palette.canvas)
         .preferredColorScheme(.dark)
     }
 
     private var header: some View {
-        HStack(spacing: 11) {
-            Image("BifrostMark")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 32, height: 32)
-                .accessibilityHidden(true)
+        HStack(spacing: 10) {
+            BrandMark(height: 20)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("Bifrost")
@@ -72,7 +66,7 @@ struct MenuBarView: View {
             } label: {
                 Label("Open", systemImage: "macwindow")
             }
-            .buttonStyle(.iconAction(size: 26))
+            .buttonStyle(.iconAction)
             .help("Open Bifrost")
         }
     }
@@ -80,13 +74,13 @@ struct MenuBarView: View {
     private var footer: some View {
         HStack(spacing: 9) {
             Button("Disconnect all") { controller.disconnectAll() }
-                .buttonStyle(QuietActionStyle(compact: true))
+                .buttonStyle(.quietCompact)
                 .disabled(controller.disconnectableProfiles.isEmpty)
 
             Spacer(minLength: 0)
 
             Button("Quit") { NSApplication.shared.terminate(nil) }
-                .buttonStyle(QuietActionStyle(compact: true))
+                .buttonStyle(.quietCompact)
         }
     }
 
@@ -108,10 +102,7 @@ private struct MenuProfileRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Circle()
-                .fill(profile.accent.gradient)
-                .frame(width: 7, height: 7)
-                .opacity(state == .disconnected ? 0.35 : 1)
+            StatusDot(state: state)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(profile.name)
@@ -120,7 +111,7 @@ private struct MenuProfileRow: View {
                     .lineLimit(1)
                 Text(state.shortLabel)
                     .font(.caption11)
-                    .foregroundStyle(state.tone)
+                    .foregroundStyle(Theme.Palette.textTertiary)
             }
 
             Spacer(minLength: 8)
@@ -135,14 +126,14 @@ private struct MenuProfileRow: View {
                 .toggleStyle(.switch)
                 .labelsHidden()
                 .controlSize(.mini)
-                .tint(profile.accent.tint)
+                .tint(Theme.Palette.brand)
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 7)
+        .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
-                .fill(hovering ? Theme.Palette.surface : .clear)
+                .fill(hovering ? Theme.Palette.surfaceHover : .clear)
         )
         .onHover { hovering = $0 }
         .animation(Theme.Motion.hover, value: hovering)

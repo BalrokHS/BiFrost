@@ -76,15 +76,15 @@ struct ProfileEditorView: View {
     private var editForm: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 18) {
+                VStack(spacing: 14) {
                     connectionCard.id(EditorStep.connection)
                     authenticationCard.id(EditorStep.authentication)
                     networkCard.id(EditorStep.network)
                     appearanceCard.id(EditorStep.appearance)
                 }
                 .frame(maxWidth: 760)
-                .padding(.horizontal, 34)
-                .padding(.vertical, 24)
+                .padding(.horizontal, 28)
+                .padding(.vertical, 20)
                 .frame(maxWidth: .infinity)
             }
             .scrollContentBackground(.hidden)
@@ -108,10 +108,10 @@ struct ProfileEditorView: View {
                 }
             }
             .id(currentStep)
-            .transition(.opacity.combined(with: .move(edge: .trailing)))
+            .transition(.opacity)
             .frame(maxWidth: 760)
-            .padding(.horizontal, 34)
-            .padding(.vertical, 28)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 20)
             .frame(maxWidth: .infinity)
         }
         .scrollContentBackground(.hidden)
@@ -121,16 +121,9 @@ struct ProfileEditorView: View {
 
     private var sheetHeader: some View {
         HStack(spacing: 12) {
-            IconBadge(
-                symbol: draft.provider.symbol,
-                tint: draft.accent.tint,
-                highlight: draft.accent.highlight,
-                size: 30
-            )
-
             VStack(alignment: .leading, spacing: 2) {
                 Text(existingProfile == nil ? "New VPN profile" : "Edit VPN profile")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.viewTitle)
                     .foregroundStyle(Theme.Palette.textPrimary)
                 Text(isEditing
                      ? (draft.name.isEmpty ? "Unnamed" : draft.name)
@@ -142,9 +135,8 @@ struct ProfileEditorView: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .animation(Theme.Motion.state, value: draft.accent)
     }
 
     private var stepper: some View {
@@ -156,17 +148,17 @@ struct ProfileEditorView: View {
                     VStack(spacing: 7) {
                         ZStack {
                             Circle()
-                                .fill(step.rawValue <= currentStep.rawValue ? draft.accent.tint.opacity(0.20) : Theme.Palette.surface)
+                                .fill(step.rawValue <= currentStep.rawValue ? Theme.Palette.brand.opacity(0.20) : Theme.Palette.surface)
                                 .frame(width: 30, height: 30)
                             Circle()
-                                .strokeBorder(step.rawValue <= currentStep.rawValue ? draft.accent.tint.opacity(0.65) : Theme.Palette.hairlineBright)
+                                .strokeBorder(step.rawValue <= currentStep.rawValue ? Theme.Palette.brand : Theme.Palette.hairlineBright)
                                 .frame(width: 30, height: 30)
                             if step.rawValue < currentStep.rawValue {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 11, weight: .bold))
                             } else {
                                 Text("\(step.rawValue + 1)")
-                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                    .font(.system(size: 11, weight: .semibold))
                             }
                         }
                         .foregroundStyle(step.rawValue <= currentStep.rawValue ? Theme.Palette.textPrimary : Theme.Palette.textTertiary)
@@ -182,7 +174,7 @@ struct ProfileEditorView: View {
 
                 if step != EditorStep.allCases.last {
                     Rectangle()
-                        .fill(step.rawValue < currentStep.rawValue ? draft.accent.tint.opacity(0.55) : Theme.Palette.hairline)
+                        .fill(step.rawValue < currentStep.rawValue ? Theme.Palette.brand : Theme.Palette.hairline)
                         .frame(maxWidth: 72, maxHeight: 1)
                         .offset(y: -11)
                 }
@@ -214,22 +206,22 @@ struct ProfileEditorView: View {
 
             if isEditing || currentStep == .appearance {
                 Button(isEditing ? "Save changes" : "Save profile") { save() }
-                    .buttonStyle(.accent(draft.accent.tint))
+                    .buttonStyle(.accent)
                     .keyboardShortcut(.defaultAction)
             } else {
                 Button("Continue", systemImage: "chevron.right") { moveForward() }
-                    .buttonStyle(.accent(draft.accent.tint))
+                    .buttonStyle(.accent)
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 
     // MARK: - Sections
 
     private var connectionCard: some View {
-        SettingsCard("Connection", symbol: "point.3.connected.trianglepath.dotted", dense: true, fillsHeight: !isEditing) {
+        SettingsCard("Connection", dense: true, fillsHeight: !isEditing) {
             SettingsRow("Name") {
                 TextField("", text: $draft.name, prompt: Text("Company VPN"))
                     .textFieldStyle(.plain)
@@ -247,7 +239,7 @@ struct ProfileEditorView: View {
                 ChipPicker(
                     options: VPNProvider.allCases,
                     selection: $draft.provider,
-                    tint: draft.accent.tint,
+                    tint: Theme.Palette.brand,
                     title: \.rawValue,
                     symbol: \.symbol
                 )
@@ -259,7 +251,7 @@ struct ProfileEditorView: View {
                 SettingsRow("Imported profile") {
                     HStack(spacing: 9) {
                         Text(openVPNImportName)
-                            .font(.readout)
+                            .font(.caption12)
                             .foregroundStyle(Theme.Palette.textSecondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -286,7 +278,7 @@ struct ProfileEditorView: View {
     }
 
     private var authenticationCard: some View {
-        SettingsCard("Authentication", symbol: "person.badge.key.fill", dense: true, fillsHeight: !isEditing) {
+        SettingsCard("Authentication", dense: true, fillsHeight: !isEditing) {
             VStack(alignment: .leading, spacing: 7) {
                 Text("Method")
                     .font(.body13)
@@ -295,7 +287,7 @@ struct ProfileEditorView: View {
                 ChipPicker(
                     options: availableAuthenticationMethods,
                     selection: $draft.authentication,
-                    tint: draft.accent.tint,
+                    tint: Theme.Palette.brand,
                     title: \.rawValue,
                     symbol: nil
                 )
@@ -333,7 +325,7 @@ struct ProfileEditorView: View {
                     HStack(spacing: 8) {
                         if let revealedPassword {
                             Text(revealedPassword)
-                                .font(.readout)
+                                .font(.body13)
                                 .foregroundStyle(Theme.Palette.textPrimary)
                                 .textSelection(.enabled)
                                 .lineLimit(1)
@@ -351,7 +343,7 @@ struct ProfileEditorView: View {
                                 revealedPassword = nil
                             }
                         }
-                        .buttonStyle(QuietActionStyle(compact: true))
+                        .buttonStyle(.quietCompact)
                         Button("Forget") { forgetSavedPassword(profile.id) }
                             .buttonStyle(QuietActionStyle(compact: true, destructive: true))
                     }
@@ -365,7 +357,7 @@ struct ProfileEditorView: View {
     }
 
     private var networkCard: some View {
-        SettingsCard("Network", symbol: "arrow.triangle.branch", tint: Color(hex: 0x2DC7B4), dense: true, fillsHeight: !isEditing) {
+        SettingsCard("Network", dense: true, fillsHeight: !isEditing) {
             SettingsRow("DNS servers") {
                 TextField("", text: $draft.dnsServers, prompt: Text("10.0.0.53, 10.0.0.54"))
                     .textFieldStyle(.plain)
@@ -385,8 +377,8 @@ struct ProfileEditorView: View {
     }
 
     private var appearanceCard: some View {
-        SettingsCard("Appearance", symbol: "paintpalette", tint: draft.accent.tint, dense: true, fillsHeight: !isEditing) {
-            SettingsRow("Accent", detail: "Tints this profile's card and the window while it is connected.") {
+        SettingsCard("Appearance", dense: true, fillsHeight: !isEditing) {
+            SettingsRow("Accent", detail: "Colours this profile's icon while it is connected.") {
                 HStack(spacing: 8) {
                     ForEach(ProfileAccent.allCases, id: \.self) { accent in
                         AccentSwatch(accent: accent, isSelected: draft.accent == accent) {
@@ -612,14 +604,14 @@ private struct ChipPicker<Option: Hashable>: View {
                             .font(.system(size: 12, weight: .medium))
                     }
                     .foregroundStyle(isSelected ? Theme.Palette.textPrimary : Theme.Palette.textSecondary)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 7)
+                    .padding(.horizontal, 10)
+                    .frame(minHeight: 28)
                     .background {
                         let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
-                        shape.fill(isSelected ? tint.opacity(0.20) : Theme.Palette.surface)
+                        shape.fill(isSelected ? tint.opacity(0.18) : Theme.Palette.surface)
                             .overlay(
                                 shape.strokeBorder(
-                                    isSelected ? tint.opacity(0.5) : Theme.Palette.hairline,
+                                    isSelected ? tint.opacity(0.6) : Theme.Palette.hairline,
                                     lineWidth: 1
                                 )
                             )
@@ -644,17 +636,15 @@ private struct AccentSwatch: View {
     var body: some View {
         Button(action: action) {
             Circle()
-                .fill(accent.gradient)
-                .frame(width: 18, height: 18)
-                .overlay(Circle().strokeBorder(.white.opacity(0.25), lineWidth: 1))
-                .padding(3)
+                .fill(accent.tint)
+                .frame(width: 16, height: 16)
+                .padding(4)
                 .overlay(
                     Circle().strokeBorder(
-                        isSelected ? accent.highlight : (hovering ? Theme.Palette.hairlineBright : .clear),
+                        isSelected ? Theme.Palette.textPrimary : (hovering ? Theme.Palette.hairlineBright : .clear),
                         lineWidth: 1.5
                     )
                 )
-                .shadow(color: accent.tint.opacity(isSelected ? 0.6 : 0), radius: 6)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)

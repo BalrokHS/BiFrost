@@ -1,0 +1,38 @@
+{
+  "skill_name": "animation-vocabulary",
+  "evals": [
+    {
+      "id": 3,
+      "prompt": "Two things my design lead said that I need the right words for. First: 'the spring feels finished way before the numbers actually stop moving' — apparently that's a known concept? Second: what do you call that tiny wind-up move in the opposite direction right before something slides away — and how is it different from the thing where parts of the element keep drifting and settle a beat after the main motion stops?",
+      "expected_output": "Perceptual duration for the first. Anticipation for the wind-up, contrasted with follow-through for the post-motion settle, all three named with one-line definitions and disambiguated crisply.",
+      "expectations": [
+        "Names 'perceptual duration' for a spring that feels finished while still micro-settling underneath",
+        "Names 'anticipation' for the small opposite-direction wind-up before the main motion",
+        "Names 'follow-through' for parts continuing to move and settling after the main motion stops, explicitly contrasted with anticipation (before vs after the main motion)",
+        "Stays in naming mode: leads with the terms and definitions, no implementation code"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What's the name for the technique where you measure where an element starts and ends, jump it to the end, then animate a transform back from the start? My skill list doesn't have it, I think.",
+      "expected_output": "FLIP (first, last, invert, play), named as the lead term with a one-line definition, even though the skill's own list does not carry it.",
+      "expectations": [
+        "Names FLIP (first, last, invert, play) as the lead term",
+        "Does not refuse or hedge because the term is missing from the skill's list",
+        "Gives a correct one-line definition: measure first and last positions, invert with a transform, play the transform back to none",
+        "Keeps it to naming, with no implementation code"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "My designer says our dashboard 'enters twice': the whole panel slides in, then every card inside it staggers in again. Is there a word for that, and is it a problem?",
+      "expected_output": "Layered entry, the house term for stacking a container entrance and a second entrance of its contents; the house rule is one entrance per container.",
+      "expectations": [
+        "Names 'layered entry' as the lead term",
+        "Defines it as a container entrance followed by a second entrance of its contents",
+        "States the house rule: one entrance per container",
+        "Stays in naming mode and offers frontend-design at most once for the fix"
+      ]
+    }
+  ]
+}

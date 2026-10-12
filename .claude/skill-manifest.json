@@ -1,0 +1,577 @@
+{
+  "version": "11.0.3",
+  "description": "Routing and capability manifest for Design Fleet. The CLI and website preview relevance and invocation eligibility; native hosts select skills from their supported metadata. This preview is not runtime enforcement.",
+  "skills": {
+    "design-contract": {
+      "description": "Own the project's design truth in five modes: setup writes a requested taste profile at the selected host path; assess rates codebase design consistency; draft generates a filled VISION.md hard-rails contract; reconcile diffs the doc against reality; plan turns FEEDBACK.md and the north star into proposed Goals rows",
+      "triggers": [
+        "setup design",
+        "set up design",
+        "design onboarding",
+        "establish design taste",
+        "design preferences",
+        "configure design rules",
+        "initialize design system",
+        "install design fleet",
+        "set up design system",
+        "what's my design style",
+        "set up design profile",
+        "create design profile",
+        "design taste profile",
+        "audit codebase",
+        "audit design",
+        "evaluate design",
+        "assess UI quality",
+        "assess design consistency",
+        "check design consistency",
+        "design debt",
+        "what design needs fixing",
+        "how consistent is the design",
+        "scan codebase for design",
+        "design quality",
+        "design migration report",
+        "extract design profile",
+        "review project design",
+        "create a vision",
+        "design contract",
+        "project design rules",
+        "vision draft",
+        "draft the vision",
+        "reconcile vision",
+        "is the vision stale",
+        "hard rails",
+        "design hard rails",
+        "plan design goals",
+        "propose goals",
+        "process the feedback inbox",
+        "what should we build next",
+        "audit the codebase",
+        "how consistently",
+        "consistency across the app"
+      ],
+      "input": [
+        "conversation",
+        "codebase"
+      ],
+      "output": [
+        "host-specific-taste-profile",
+        "audit-report",
+        "VISION.md",
+        "reconcile-report",
+        "proposed-goals"
+      ],
+      "modes": {
+        "setup": {
+          "precondition": "User requests setup or accepts a setup offer; reuse an existing profile and preserve its owner-defined preferences.",
+          "runs_once": true
+        },
+        "assess": {
+          "precondition": null,
+          "runs_once": false
+        },
+        "draft": {
+          "precondition": null,
+          "runs_once": false
+        },
+        "reconcile": {
+          "precondition": null,
+          "runs_once": false
+        },
+        "plan": {
+          "precondition": null,
+          "runs_once": false
+        }
+      },
+      "not_this_skill": [
+        {
+          "when": "user wants to build UI",
+          "use": "frontend-design"
+        },
+        {
+          "when": "user wants a visual critique, Nielsen heuristic review, or to verify just-generated code",
+          "use": "design-review"
+        },
+        {
+          "when": "taste profile already exists and user only wants to review it",
+          "use": null
+        },
+        {
+          "when": "user wants a deep motion-only audit with leverage-ranked findings and executor plans",
+          "use": "motion-audit (assess covers the whole design surface at rating altitude)"
+        }
+      ],
+      "invocation": "automatic"
+    },
+    "frontend-design": {
+      "description": "Build, fix or polish UI, small fixes included. Use when something feels janky, slow, laggy or dead when pressed, the page jumps sideways, spacing feels off, or someone asks to add dark mode, an empty state, a menu, dropdown, modal, command palette or tooltip, a transition or animation between states or pages, a layout that works on phones, or to make it feel like Linear or another product. Also covers easing, springs, reduced motion, drag and gestures, scrollbars, colour and contrast, UI copy, and Next.js and Tailwind setup. Points each job to the one reference to read before editing. Use design-review to critique or review UI, design-contract for VISION.md and project-wide consistency, and animation-vocabulary to name an effect.",
+      "triggers": [
+        "build this UI",
+        "build a component",
+        "build a page",
+        "build a layout",
+        "create this component",
+        "create a component",
+        "create a page",
+        "create a layout",
+        "implement this UI",
+        "implement this component",
+        "implement this page",
+        "design this component",
+        "design this page",
+        "design this layout",
+        "make this page",
+        "make this component",
+        "build the interface",
+        "build the layout",
+        "production UI",
+        "frontend design",
+        "animate this",
+        "add an animation",
+        "make this animate",
+        "needs an animation",
+        "how should this animate",
+        "easing curve",
+        "ease-out",
+        "ease-in",
+        "ease-in-out",
+        "cubic-bezier",
+        "spring animation",
+        "spring physics",
+        "CSS transition",
+        "page transition",
+        "motion design",
+        "make it smooth",
+        "feels janky",
+        "stagger animation",
+        "animation storyboard",
+        "framer motion",
+        "keyframe animation",
+        "microinteraction",
+        "pseudo-element",
+        "::before",
+        "::after",
+        "::first-line",
+        "view-transition",
+        "use view transition",
+        "::backdrop",
+        "::placeholder",
+        "::selection",
+        "::marker",
+        "icon morphing",
+        "morph this icon",
+        "SVG morph",
+        "icon animation",
+        "container size animation",
+        "container animation",
+        "animate container",
+        "animate height",
+        "ResizeObserver",
+        "useMeasure",
+        "predictive prefetch",
+        "link prefetch",
+        "trajectory prediction",
+        "hitSlop",
+        "foresight",
+        "motion/react",
+        "motion.div",
+        "layoutId",
+        "AnimatePresence",
+        "popLayout",
+        "MotionConfig",
+        "useMotionValue",
+        "useSpring",
+        "useTransform",
+        "useMotionTemplate",
+        "dragMomentum",
+        "dragElastic",
+        "dragConstraints",
+        "@keyframes",
+        "@starting-style",
+        "transform-origin",
+        "preserve-3d",
+        "perspective",
+        "backface-visibility",
+        "clip-path",
+        "marquee",
+        "spinner",
+        "touch-action",
+        "pull to refresh",
+        "hold to delete",
+        "snap points",
+        "Vaul",
+        "drag lags behind my finger",
+        "snaps on release",
+        "can't catch it while it moves",
+        "scroll animation",
+        "fade in on scroll",
+        "animate on scroll",
+        "scroll reveal",
+        "parallax",
+        "scrollytelling",
+        "sticky section",
+        "animation-timeline",
+        "scroll-driven",
+        "useScroll",
+        "dropped frames",
+        "60fps",
+        "frame budget",
+        "hardware acceleration",
+        "will-change",
+        "GPU",
+        "animation performance",
+        "stutter",
+        "choppy",
+        "feels off",
+        "feels wrong",
+        "feels cheap",
+        "feels robotic",
+        "lifeless",
+        "sluggish",
+        "flickers",
+        "exit animation doesn't play",
+        "animates from the wrong place",
+        "frame by frame",
+        "slow motion",
+        "scrub",
+        "which library",
+        "add a dependency",
+        "bundle size",
+        "headless primitives",
+        "Radix",
+        "Base UI",
+        "React Aria",
+        "Sonner",
+        "GSAP",
+        "React Spring",
+        "WAAPI",
+        "motion-safe",
+        "motion-reduce",
+        "vestibular",
+        "motion sickness",
+        "autoplay video",
+        "animation-play-state",
+        "motion brief",
+        "grill me about this animation",
+        "help me decide how this should animate",
+        "add dark mode",
+        "write the empty state",
+        "add an empty state",
+        "add a row actions menu",
+        "add a command palette",
+        "cmd+k",
+        "add a smooth transition",
+        "work well on phones",
+        "feel like linear",
+        "add a dropdown",
+        "add a tooltip"
+      ],
+      "input": [
+        "intent-description",
+        "existing-component",
+        "specific-pattern-question"
+      ],
+      "output": [
+        "production-code",
+        "animation-code",
+        "storyboard",
+        "code-example"
+      ],
+      "precondition": null,
+      "runs_once": false,
+      "not_this_skill": [
+        {
+          "when": "user wants to review existing UI quality, run a Nielsen heuristic review, or verify the just-built code follows the rules",
+          "use": "design-review"
+        },
+        {
+          "when": "user wants a codebase audit, a project VISION.md, or a taste profile",
+          "use": "design-contract"
+        },
+        {
+          "when": "user wants several genuinely different versions to flip through and pick from",
+          "use": "proto (explicit /proto invocation only — point the user at it)"
+        },
+        {
+          "when": "user wants a codebase-wide motion audit producing executor plans",
+          "use": "motion-audit (explicit /motion-audit invocation only — point the user at it)"
+        },
+        {
+          "when": "user asks where motion would help or what should animate here",
+          "use": "design-review (references/motion-opportunities.md)"
+        },
+        {
+          "when": "bare accessibility/a11y requests about focus, ARIA, contrast, or hit targets (not motion)",
+          "use": "frontend-design interaction-design reference + color-contrast/ux-laws rules — not a motion surface"
+        }
+      ],
+      "invocation": "automatic"
+    },
+    "design-review": {
+      "description": "Two-altitude evaluator of existing UI. Deterministic floor (formerly design-lint): validates code against grep-able check IDs and the VISION.md contract via `design-fleet lint`, producing a pass/fail report. Subjective ceiling (formerly design-critique): a systematic visual + behavioral critique of a screenshot, file, or URL, with a formal Nielsen review (references/nielsen-review.md) on explicit request, and a motion opportunity scan (references/motion-opportunities.md, explicit request only) that proposes the few places motion would genuinely improve existing UI — with exact values — and names what should stay static",
+      "triggers": [
+        "design critique",
+        "critique this UI",
+        "critique this design",
+        "critique this page",
+        "critique this screen",
+        "design review",
+        "review this UI",
+        "review this page",
+        "review this screen",
+        "review this screenshot",
+        "design feedback",
+        "UI feedback",
+        "page review",
+        "screen review",
+        "what's wrong with this UI",
+        "improve this UI",
+        "improve this page",
+        "polish this UI",
+        "polish this page",
+        "refine this design",
+        "redesign this",
+        "analyze this UI",
+        "look at this UI",
+        "screenshot critique",
+        "mockup review",
+        "nielsen heuristics",
+        "nielsen review",
+        "heuristic review",
+        "heuristic evaluation",
+        "usability audit",
+        "usability heuristics",
+        "check against nielsen",
+        "ux heuristic review",
+        "accessibility heuristics",
+        "formal usability review",
+        "10 heuristics",
+        "design lint",
+        "lint my UI",
+        "lint this code",
+        "validate this UI",
+        "validate the design",
+        "verify design compliance",
+        "verify UI rules",
+        "did I follow the design rules",
+        "check my UI code",
+        "design rule compliance",
+        "does this pass the design rules",
+        "design quality check",
+        "verify output against rules",
+        "lint against the vision",
+        "check the contract",
+        "contract compliance",
+        "does this follow the vision",
+        "scan for animation opportunities",
+        "where would motion help",
+        "what should animate here",
+        "find missing animations",
+        "which animations are we missing"
+      ],
+      "input": [
+        "image",
+        "file-path",
+        "url",
+        "component-code",
+        "user-flow",
+        "diff",
+        "recently-generated-code"
+      ],
+      "output": [
+        "structured-critique",
+        "heuristic-checklist",
+        "lint-report"
+      ],
+      "output_notes": "Report executable checks, agent review, and rendered interaction evidence separately. Executable coverage is limited to the shipped check registry and activated contract checks. Ordinary critique is advisory; a subjective score gates only under explicit project policy and current independent calibration. The CLI does not promote agent goals from critique history.",
+      "precondition": "code or a visual artifact exists to review",
+      "runs_once": false,
+      "not_this_skill": [
+        {
+          "when": "user wants to build new UI from scratch (or a motion/pattern implementation)",
+          "use": "frontend-design"
+        },
+        {
+          "when": "user wants a full codebase audit, to draft/reconcile VISION.md, or to set up a taste profile",
+          "use": "design-contract"
+        },
+        {
+          "when": "user wants accepted motion opportunities implemented",
+          "use": "frontend-design"
+        },
+        {
+          "when": "user wants a codebase-wide motion audit with per-finding executor plans",
+          "use": "motion-audit (explicit /motion-audit invocation only)"
+        },
+        {
+          "when": "user wants one animation decided before it exists",
+          "use": "frontend-design (motion-brief mode)"
+        }
+      ],
+      "invocation": "automatic"
+    },
+    "animation-vocabulary": {
+      "description": "Names a motion effect from a loose description. Use when someone asks what an effect is called, such as what do you call it, what's the name for it, or the word for an animation, transition or effect. Carries the fleet's house terms and links the full motion glossary. Naming only; frontend-design builds the effect and design-review judges one.",
+      "triggers": [
+        "what do you call",
+        "what's the name for",
+        "what is the name for",
+        "the word for",
+        "a word for",
+        "is there a word for",
+        "is there a name for",
+        "the right word",
+        "what's it called",
+        "what is it called",
+        "what's the term for",
+        "name of that effect",
+        "animation term",
+        "motion term",
+        "animation vocabulary",
+        "how do I describe this animation"
+      ],
+      "input": [
+        "conversation"
+      ],
+      "output": [
+        "term-with-definition"
+      ],
+      "not_this_skill": [
+        {
+          "when": "user wants the effect designed or implemented",
+          "use": "frontend-design"
+        },
+        {
+          "when": "user wants an existing animation judged or improved",
+          "use": "design-review"
+        }
+      ],
+      "invocation": "automatic"
+    },
+    "motion-audit": {
+      "description": "Codebase-wide motion audit: map the motion, 8-category audit, vetted leverage-ranked findings, then self-contained executor plans in plans/motion/NNN-*.md with their index in plans/motion/README.md. Read-only on source code; execute changes source only after the person says yes, and never commits. Explicit invocation only (disable-model-invocation)",
+      "triggers": [
+        "motion audit",
+        "audit the animations in this codebase",
+        "animation debt",
+        "write animation fix plans"
+      ],
+      "input": [
+        "codebase"
+      ],
+      "output": [
+        "findings-table",
+        "executor-plans"
+      ],
+      "precondition": "explicit /motion-audit invocation — never auto-routed (disable-model-invocation: true)",
+      "runs_once": false,
+      "not_this_skill": [
+        {
+          "when": "user wants a diff or one component's motion reviewed",
+          "use": "design-review (references/motion-review.md)"
+        },
+        {
+          "when": "user wants the whole design surface audited or VISION work",
+          "use": "design-contract"
+        },
+        {
+          "when": "user wants it fixed now",
+          "use": "frontend-design"
+        },
+        {
+          "when": "user wants proposals for where to ADD motion",
+          "use": "design-review (references/motion-opportunities.md)"
+        }
+      ],
+      "invocation": "explicit"
+    },
+    "proto": {
+      "description": "Builds 3-5 genuinely divergent, fully working variants of one UI piece behind a copied switcher (switcher.js); the user flips live and picks. keep integrates the winner with the existing components and tokens, deletes the prototype with rm -r and records the decision in FEEDBACK.md. Never touches production during exploration. Explicit invocation only (disable-model-invocation)",
+      "triggers": [
+        "/proto",
+        "divergent variants",
+        "several versions to pick from",
+        "riff"
+      ],
+      "input": [
+        "intent-description"
+      ],
+      "output": [
+        "prototype-surface",
+        "promoted-winner",
+        "decision-record"
+      ],
+      "precondition": "explicit /proto invocation — never auto-routed (disable-model-invocation: true)",
+      "runs_once": false,
+      "not_this_skill": [
+        {
+          "when": "user wants one committed build",
+          "use": "frontend-design"
+        },
+        {
+          "when": "user wants project-level taste elicitation",
+          "use": "design-contract (setup)"
+        },
+        {
+          "when": "user wants shipped UI judged",
+          "use": "design-review"
+        }
+      ],
+      "invocation": "explicit"
+    },
+    "figma-absorb": {
+      "description": "Absorbs a Figma file's design system — local and subscribed-library variable collections, read-only — into one self-contained HTML reference: live swatches painted by the tokens, a mode switcher, alias chains to endpoints, descriptions, origin badges, and a findings appendix. Never writes to Figma. Explicit invocation only.",
+      "invocation": "explicit",
+      "triggers": [
+        "/figma-absorb",
+        "absorb the figma design system",
+        "figma variables to a reference document",
+        "design system sandbox from figma"
+      ],
+      "input": [
+        "figma-file-url"
+      ],
+      "output": [
+        "design-system-html-document",
+        "figma.absorb.json",
+        "findings-report",
+        "proposed-token-table"
+      ],
+      "precondition": "Explicit invocation and Figma's official MCP read tools (whoami, get_libraries, search_design_system, get_metadata, get_variable_defs). use_figma only for a read-only fallback the person asks for, after loading figma-use; such a run is read-only by intent, not provable. Library imports are mutations and are never made; unreadable values are reported as unavailable.",
+      "not_this_skill": [
+        {
+          "when": "user wants tokens.css/tokens.json for code consumption with verified baselines",
+          "use": "a sync pipeline — out of this skill's scope by design"
+        },
+        {
+          "when": "user wants UI built from the absorbed tokens",
+          "use": "frontend-design (or /proto for divergent variants)"
+        },
+        {
+          "when": "user wants the absorbed map turned into project hard rails",
+          "use": "design-contract (draft); this skill proposes values for the existing token-table slots and never writes them"
+        },
+        {
+          "when": "user wants anything written INTO the Figma file",
+          "use": "nothing in the fleet — this skill is read-only by cardinal rule"
+        }
+      ]
+    }
+  },
+  "routing_notes": {
+    "advisory": "This section describes workflow boundaries. Preview scores indicate relevance, not host invocation. Explicit-only utilities are ineligible for automatic selection. Native hosts enforce their own supported invocation metadata.",
+    "priority_order": [
+      "If the request names an effect (\"what do you call it when...\", \"what's the name for...\"): animation-vocabulary",
+      "If the user requests a taste profile or accepts a setup offer → design-contract (setup mode); a missing profile does not interrupt other work",
+      "If input is a screenshot or image → design-review",
+      "If request mentions Nielsen, heuristics, or formal usability → design-review (references/nielsen-review.md)",
+      "If request is to audit/scan the codebase, draft/reconcile the VISION.md contract, or set up a taste profile → design-contract",
+      "If request is to lint, validate, or verify generated code against design rules or the contract → design-review",
+      "If request is to critique, review, or improve a specific visual artifact → design-review",
+      "If request asks where motion would help / what should animate (explicit scan) → design-review (references/motion-opportunities.md)",
+      "The three utilities never auto-route: /motion-audit (codebase motion audit → plans), /proto (divergent variants → live picker), and /figma-absorb (Figma design system → live reference document) fire only on explicit invocation — surface them when the request matches, do not select them",
+      "Otherwise (build UI, or a motion/easing/pattern question) → frontend-design (the fallback)"
+    ],
+    "fallback": "frontend-design",
+    "composable": "Skills can chain. Greenfield: design-contract (draft) → frontend-design → design-review; setup is optional and a missing taste profile never blocks work. Existing project: design-contract (assess) → design-contract (draft VISION.md) → design-fleet inventory → frontend-design → design-review. Component work: components table in VISION.md → frontend-design (extend the canonical file) → design-review with render evidence. Maintenance: design-contract (reconcile) when the contract drifts from reality. Motion maintenance: /motion-audit → plans → execution → design-review (references/motion-review.md); undecided direction: /proto → promotion → frontend-design conventions. Design-system intake: /figma-absorb → design-contract (draft token map) → frontend-design → design-review."
+  }
+}

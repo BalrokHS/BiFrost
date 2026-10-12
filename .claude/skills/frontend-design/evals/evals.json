@@ -1,0 +1,120 @@
+{
+  "skill_name": "frontend-design",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Build the recommended-plan card for our SaaS dashboard's pricing section and make it stand out with a warm amber accent. Project facts: Next.js App Router with Tailwind v4. app/globals.css has @import \"tailwindcss\" and an @theme inline block mapping the shadcn tokens (--background, --foreground, --card, --primary, --secondary, --muted, --accent, --border, --ring, --destructive) to OKLCH values in :root and .dark; there is no amber or other warm colour token. components/ui/card.tsx and components/ui/badge.tsx are the shadcn Card and Badge. There is no VISION.md.",
+      "expected_output": "Fleet 11 outcome case (report 10a, R2: a missing token, proposed not added). Builds the card from the existing Card and Badge with the project's tokens only. The tokens have no amber, so it proposes one (a name, an OKLCH value for light and dark, and where it is used) and waits for approval, building with the nearest existing token meanwhile. app/globals.css stays as it is; the card holds no colour literal, palette class or arbitrary value.",
+      "expectations": [
+        "Builds the card from the existing components/ui/card.tsx and components/ui/badge.tsx rather than a new card or badge component",
+        "Writes no colour literal (hex, rgb, hsl or oklch) and no Tailwind palette class such as bg-amber-500 or text-orange-600 in the card",
+        "Writes no arbitrary value such as bg-[#f59e0b] or rounded-[10px] in the card",
+        "Proposes the missing amber token with a name, an OKLCH value for light and dark, and where it is used, and asks for approval instead of putting it in app/globals.css",
+        "Until the token is approved, builds the highlight with an existing token (accent, primary or ring) and says so",
+        "Leaves app/globals.css and its @theme block as they are and brings in no new dependency"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add a copy-link button next to the share field on the invoice page. Project facts: Next.js App Router, Tailwind v4 and shadcn. components/invoice/copy-button.tsx already exists: it renders the shadcn Button (size=\"icon\") inside a Tooltip with the lucide-react Copy icon, copies a value passed as a prop, and is used on the invoice list page. COMPONENTS.md lists it under \"copy to clipboard\". The share field is in app/invoices/[id]/share-field.tsx.",
+      "expected_output": "Fleet 11 outcome case (report 10a, R3: reuse under a different name). Finds and reuses components/invoice/copy-button.tsx, the project's copy-to-clipboard component even though its name says nothing about links, and passes it the share URL. No new button or copy component, no raw <button>, no text glyph as the icon, and a note of what was not verified.",
+      "expectations": [
+        "Imports the existing CopyButton from @/components/invoice/copy-button in share-field.tsx and passes it the share link",
+        "Says it found the component by its job (COMPONENTS.md lists it under copy to clipboard) and names the file it reuses",
+        "Creates no new component file whose name contains Button or Copy",
+        "Writes no raw <button> element for the copy action",
+        "Uses no text glyph or emoji as the icon; the copy icon comes from lucide-react through the existing component",
+        "Says what it did not verify, such as the type check or trying the copy in a browser"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Our dashboard is React with Tailwind v4 and shadcn on Radix primitives, and the shadcn ScrollArea and Dialog components are already installed. The whole page scrolls. When filters load more rows the page grows past the fold, and on Windows Chrome everything jumps sideways as the scrollbar appears. Opening a dialog makes it jump again. The sidebar's nav list scrolls on its own and its items shift when it starts to overflow. Design wants thin, subtle scrollbars. How should I fix this?",
+      "expected_output": "Scrollbars overlay where the platform overlays them and never push layout. scrollbar-gutter: stable goes on the page root only, because the document's scrollbar takes space on Windows Chrome and Edge; it does nothing where scrollbars already overlay (macOS with a trackpad, iOS, Android, Firefox on Windows 11 with Always show scrollbars off). The sidebar list reuses the installed ScrollArea, with type=\"auto\" because Radix's default type=\"hover\" never shows the thumb for keyboard scrolling, instead of a gutter or a hand-rolled scrollbar. Thin styling uses the standard scrollbar-width and scrollbar-color with an existing token, the thumb stays visible whenever content overflows, and the dialog keeps Radix's own scroll lock but zeroes the right margin it adds, because that margin doubles up with the root gutter and still shifts the page. No overflow-y: scroll to reserve space, no hidden or hover-only thumb.",
+      "expectations": [
+        "Puts scrollbar-gutter: stable on the page root (html) for the document-level shift, not on every scroll container",
+        "Explains that the shift happens where scrollbars take space (Chrome and Edge on Windows) and that scrollbars already overlay on macOS with a trackpad, iOS and Android, so the gutter changes nothing there",
+        "Reuses the installed ScrollArea for the sidebar nav list instead of adding a gutter there, hand-rolling a custom scrollbar or adding a new library",
+        "Does not recommend overflow-y: scroll (or overflow: overlay) to reserve or fake scrollbar space",
+        "Styles the scrollbars with the standard scrollbar-width: thin and scrollbar-color, using an existing colour token, rather than ::-webkit-scrollbar rules",
+        "Keeps the scrollbar thumb visible whenever content overflows: no scrollbar-width: none, transparent thumb or thumb that only appears on hover, including Radix ScrollArea's default type=\"hover\" (a ScrollArea set to type=\"auto\" counts as visible)",
+        "Stops the dialog jump without adding a second scroll lock: notes that Radix Dialog's lock adds a right margin the width of the scrollbar, which doubles up with a root scrollbar-gutter, and zeroes that margin (for example html body[data-scroll-locked] { margin-right: 0 !important })"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Add a Notifications settings page with three groups of toggles: email, push and weekly digest. Project facts: a stock Next.js App Router app with shadcn as generated. app/layout.tsx loads Inter from next/font/google; app/globals.css holds the shadcn tokens, with white cards through --card; components/ui has button, card, label, switch and separator. There is no VISION.md and no taste profile.",
+      "expected_output": "Fleet 11 outcome case (report 10a, R4: existing conventions beat fleet defaults). Builds the page from the existing Card, Switch and Label and the project's tokens, keeps Inter and the white cards, and changes neither app/layout.tsx nor app/globals.css. Headings and labels are in sentence case, no control pretends to save, and it says what it did not verify.",
+      "expectations": [
+        "Leaves app/layout.tsx and app/globals.css unchanged: keeps Inter and the white cards as the project's choices, with no font swap and no new font import",
+        "Builds the toggles with the existing components/ui/switch and components/ui/label, grouped in components/ui/card, rather than raw inputs or new components",
+        "Defines no new CSS custom property and writes no colour literal or palette class",
+        "Writes every heading, label and button in sentence case (for example 'Weekly digest', not 'Weekly Digest')",
+        "Wires each switch to state, or says plainly that saving is not connected yet, rather than rendering controls that pretend to save",
+        "Ends with what it verified and what it did not, such as the build or how the page renders"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "I'm building a bottom sheet component from scratch in React (no Vaul, custom implementation). Users drag it between a closed peek state and fully open. When they let go, I use the physics I remember from school: I project the landing position with distance = v²/(2·deceleration) from the release velocity, snap to the closer of the two states from that projected point, and while the snap animation runs I queue any new touches until it settles. I also clamp the drag hard at the fully-open position so users can't pull past it. It works, but compared to iOS sheets it feels subtly wrong in a way I can't name. What specifically is off?",
+      "expected_output": "Should catch the four planted flaws with specifics: (1) the projection formula — platforms ship exponential-decay projection (velocity/1000 · rate/(1−rate), rate≈0.998), not the physics-textbook v²/2a, and the two land in different places; (2) queueing touches during the snap — must be interruptible, new gesture starts from the live presentation value with velocity carried through; (3) the hard clamp — rubber-band with progressive resistance instead; (4) velocity handoff — the settle spring must start at the finger's release velocity. Bonus: velocity-sign commit, velocity from a recent-events history not the last event.",
+      "expectations": [
+        "Identifies the v²/(2·deceleration) projection as the wrong model and replaces it with the exponential-decay projection that shipping platforms use (deceleration-rate form, ≈0.998), noting the textbook formula lands the sheet in a different place than users' iOS-trained expectations",
+        "Rejects queueing touches until the animation settles: the sheet must be grabbable mid-flight, with the new gesture starting from the element's current on-screen (presentation) value rather than the logical target",
+        "Carries velocity across the seams in both directions: the release velocity feeds the settle spring as its initial velocity, and an interrupting grab inherits the element's current velocity rather than hard-cutting it",
+        "Replaces the hard clamp at fully-open with rubber-banding — the sheet follows the finger past fully-open with growing resistance",
+        "Uses velocity direction at release (not just projected position) to decide commit-vs-reverse, so a sheet moving upward reopens even when mostly closed",
+        "Computes release velocity from a short history of recent pointer events rather than the final event alone"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Our segmented control / tab bar animates an active-pill background sliding behind the tabs, and I transition the text color of the active tab at the same time. No matter what duration I use, the text color change never feels synchronized with the pill - you can see the old color and the new color mid-swap. How do the really polished apps do this?",
+      "expected_output": "Should identify the duplicate-and-clip technique: render a second copy of the tab list styled fully active, clip it with clip-path inset() to the pill's bounds, and animate the clip window - the color sweep is then geometrically tied to the pill. Timing individual color transitions can never sync.",
+      "expectations": [
+        "Recognizes that transitioning the text color property cannot be synchronized with the moving pill because color interpolation and position interpolation read differently mid-flight",
+        "Proposes duplicating the tab list, styling the duplicate as fully active, and clipping it so only the region over the pill is visible",
+        "Animates the clip-path inset window in sync with (or as) the pill movement so text appears to change color with a hard sweep edge",
+        "Marks the duplicate aria-hidden and inert (or otherwise takes its tabs out of the tab order), because aria-hidden alone leaves the duplicated tabs focusable",
+        "Keeps the cost honest: animates the clip together with the pill on one timing, and does not claim that clip-path animation is hardware-accelerated or composited"
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Add a swipe-to-dismiss interaction to the notification toasts in our app. While you're at it - our dashboard is shadcn/ui with the default flat look, and I saw a really nice frosted-glass toolbar on a demo site; should I give our toolbar that glassy backdrop-blur treatment too?",
+      "expected_output": "Should build the swipe with velocity-based dismissal + interruptibility, and push back on the frosted-glass toolbar: translucent materials are an aesthetic commitment that fights shadcn's flat opaque system; adding one glassy element creates incoherence; also a performance cost. If the user wants it, it's a design-direction change (taste profile / VISION.md), not a drive-by.",
+      "expectations": [
+        "Checks which toast the app already renders before building the gesture: shadcn's Sonner and its Base UI toast both swipe to dismiss out of the box, so it configures that (for example Sonner's swipeDirections or Base UI's swipeDirection) instead of hand-building a second gesture",
+        "Only if the app's toast has no swipe support, builds it on that toast: a quick flick dismisses even at a small distance (release velocity), the drag tracks the pointer 1:1 with pointer capture, and the motion retargets instead of restarting keyframes",
+        "Advises against the frosted-glass toolbar in this project rather than just implementing it, on grounds of coherence with the existing flat design system",
+        "Frames translucency/materials as a system-level design direction that would need to be adopted deliberately (e.g. via the project's design contract or taste profile), not added to one component",
+        "Mentions the performance or accessibility cost of backdrop blur (Safari expense, prefers-reduced-transparency/contrast fallbacks) as part of the tradeoff"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "For accessibility I'm dropping this into our global stylesheet:\n\n```css\n@media (prefers-reduced-motion: reduce) {\n  *, *::before, *::after {\n    animation: none !important;\n    transition: none !important;\n  }\n}\n```\n\nThat covers the whole app in one shot, right? For context the app has a hero with a looping ambient gradient, a bottom sheet the user drags with their finger, and status chips that currently crossfade between colours when a job changes state.",
+      "expected_output": "Wave-3 admission probe (accessibility.md, C1 tiered doctrine). Should refuse the blanket kill-switch as the whole answer: movement removed entirely, opacity/colour state fades kept for legibility, the ambient loop parked on a representative frame (negative animation-delay, not frame 0), and 1:1 drag tracking preserved as direct manipulation. Should also avoid !important as the mechanism.",
+      "expectations": [
+        "Does not endorse the blanket kill-switch as correct or complete — distinguishes motion that must stop from feedback that may remain",
+        "States that positional/transform movement is removed entirely rather than merely shortened or softened",
+        "Keeps the non-moving state feedback (the colour/opacity crossfade) so state changes stay legible under reduce",
+        "Handles the looping ambient element by pausing it on a representative frame rather than leaving it stuck at its first frame",
+        "Preserves 1:1 finger tracking for the drag, treating direct manipulation differently from decorative motion",
+        "Does not rely on the blanket wildcard rule alone: any global reduced-motion rule it keeps leaves the status-chip crossfade and the 1:1 drag tracking working"
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Add fade-and-rise-on-scroll to every section of our analytics dashboard — the KPI row, the data tables, the filter bar, all of it. I want it to fire early so I'm using `useInView(ref, { margin: \"100px\" })`, and it should re-play every time the user scrolls back up so the page keeps feeling alive. 600ms feels about right. Can you wire it up?",
+      "expected_output": "Wave-3 admission probe (scroll-animation.md). Should push back on scroll reveals in product UI at all, correct the positive margin to negative, reject re-playing in favour of reveal-once, and treat 600ms as a marketing-surface band rather than product UI.",
+      "expectations": [
+        "Pushes back on applying scroll reveals across product/dashboard UI rather than simply implementing the request",
+        "Corrects the trigger margin sign so the reveal fires as the element enters the viewport (negative margin) instead of ~100px before it",
+        "Rejects re-playing on scroll-up in favour of revealing once per element (and stopping observation after firing)",
+        "Treats 600ms as a marketing-surface duration rather than a product-UI one, or ties it to the project's declared timing",
+        "Notes that content already visible on load should not be gated behind a scroll trigger at all"
+      ]
+    }
+  ]
+}

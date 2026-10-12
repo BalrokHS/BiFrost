@@ -1,0 +1,40 @@
+{
+  "skill_name": "proto",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/proto the pricing card on our marketing page — I can't decide what direction it should take.",
+      "expected_output": "Scopes to the single piece, reads VISION.md, the tokens and the existing components, names three directions with an axis each (never Option A/B/C), builds one index.html in prototypes/<slug>/ with every control working, copies switcher.js next to it with cp instead of retyping it, re-reads the page once, says \"not rendered\" when no browser tool is available, then hands over the Variant / Axis / Right when / Costs you table and stops without picking a favourite.",
+      "expectations": [
+        "Proposes 3 directions by default, each with a sentence-case descriptive name and a stated axis; none is a tint of another",
+        "Builds only in prototypes/<slug>/, touches no production code, and copies switcher.js with cp rather than retyping or editing it",
+        "Every control in every variant does something: no lorem, no dead buttons, no autofocus",
+        "Says \"not rendered\" when no browser tool is available, instead of installing tools or writing scripts outside the repo",
+        "Ends with the Variant / Axis / Right when / Costs you table and how to flip the switcher, then stops with no favourite picked"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "riff Quiet — but I want the calm direction explored harder",
+      "expected_output": "Keeps the copied switcher, builds a fresh set of variants around the Quiet direction (each with a new name and stated axis), and again hands over the trade-off table and stops for the user's choice.",
+      "expectations": [
+        "Keeps the existing switcher and prototype folder instead of starting the whole workflow over",
+        "New variants diverge around the named direction on stated axes; none is a tint of another",
+        "The switcher file stays an unchanged copy of switcher.js",
+        "Ends with the trade-off table and waits for the user's pick"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "keep Editorial",
+      "expected_output": "Integrates the Editorial variant with the project's existing components, tokens and conventions, keeps anything the contract lacks out and proposes those rows in chat, deletes the prototype with rm -r prototypes/<slug> (never git), writes a decided entry to FEEDBACK.md naming the winner and each losing direction with its axis, and offers to draft the short contract rows, leaving VISION.md as it is.",
+      "expectations": [
+        "Integrates the chosen variant using the project's existing components, tokens and conventions",
+        "Proposes any token or timing the contract lacks as a row in chat and does not write VISION.md",
+        "Deletes the prototype folder with rm -r, never with git",
+        "Writes a DECIDED entry to FEEDBACK.md in its dated format (date, DECIDED, who picked) naming the winner and the directions that lost, with their axes",
+        "Offers to draft the short contract rows the winner implies"
+      ]
+    }
+  ]
+}

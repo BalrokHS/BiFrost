@@ -1,0 +1,80 @@
+{
+  "skill_name": "design-contract",
+  "evals": [
+    {
+      "id": 3,
+      "prompt": "Set up the design contract for our existing app. It is Next.js App Router with Tailwind v4 and shadcn: app/layout.tsx loads Inter from next/font/google, app/globals.css holds the shadcn tokens in OKLCH (white cards through --card on a light gray --background), and components/ui has button, card, input, dialog and sonner. There is no VISION.md and no taste profile yet. What should the process look like?",
+      "expected_output": "Fleet 11 outcome case (report 10a, R4: existing conventions beat fleet defaults). Reads the code before asking anything, records what the project already uses (Inter, the OKLCH tokens, white cards on the gray background, the shadcn components) as its current design and keeps it, asks only what the code cannot answer, one question at a time, and offers to draft a short VISION.md from the extraction for the person to approve. It proposes no font swap and no new tokens, and changes no file before the person agrees.",
+      "expectations": [
+        "Scans the code first (app/layout.tsx, app/globals.css, components/ui) and quotes what it found rather than starting with a questionnaire",
+        "Records Inter as the project's font and keeps it; an established font is not a Design Fleet violation, so it proposes no replacement",
+        "Records the white cards on the light gray background and the OKLCH tokens as the project's choices to keep, not defaults to fix",
+        "Asks only what the code cannot answer (for example the north star or rules the team holds), one question at a time",
+        "Offers to draft a short VISION.md from the extracted values for the person to approve, and edits no file before they agree"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Assess the design quality of this Next.js project before we draft the contract. Files: app/globals.css declares four colour variables (--background, --foreground, --primary, --border). Components hold 12 hardcoded hex values: components/invoice-row.tsx:14 #0f172a, :22 #64748b, :31 #e2e8f0; components/stat-card.tsx:9 #2563eb, :18 #f8fafc, :26 #1e293b; components/nav.tsx:7 #334155, :19 #3b82f6; app/settings/page.tsx:40 #ef4444, :52 #22c55e, :61 #f1f5f9, :77 #94a3b8. app/layout.tsx loads Inter from next/font/google and no other font. box-shadow appears three times with different directions: components/stat-card.tsx:12 0 2px 6px, components/dialog.tsx:30 0 -2px 8px, components/menu.tsx:21 2px 0 10px. No file mentions prefers-reduced-motion. components/ui holds the shadcn button, card, dialog and input.",
+      "expected_output": "Should produce a structured audit of the 7 dimensions (typography, colors, spacing, shadows, animation, components, keyboard) with Solid/Partial/Missing ratings drawn from the quoted files, Top 5 opportunities and a migration order, saying which dimensions the facts do not cover, and end by offering draft mode, not by generating a design-context.mdc file.",
+      "expectations": [
+        "Extracts the typography profile and records Inter as the established primary font, kept by default rather than flagged",
+        "Counts the colours from the files (4 variables against 12 hardcoded hex values), cites at least three of the hex values by file and line, and rates colour as Partial",
+        "Identifies the three shadows' different directions and cites each by file and line",
+        "Flags the missing prefers-reduced-motion as a gap in the animation dimension",
+        "Rates each dimension Solid, Partial or Missing from the files given, and says which dimensions the facts do not cover (for example spacing and keyboard)",
+        "Ends by offering to draft a VISION.md from the extraction, instead of generating design-context.mdc, and changes no file"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Draft a VISION.md design contract for my React app. The tokens live in src/theme/tokens.ts with ink #0f172a, surface #fcfcfd, and primary #4338ca; headings use Fraunces and body uses Inter; modals animate at 200ms with cubic-bezier(0.32, 0.72, 0, 1) via framer-motion; errors go through showError() in src/components/ui/feedback.ts.",
+      "expected_output": "Should take the short path by default: mechanically pre-fill the tokens, typography, animation, and lint-hooks tables of the 41-line short template from the stated code facts, then run a short gap interview one question at a time (north star, component families, project rules; no app-shell or selection questions, which belong to the full template) before writing VISION.md at the project root with the template's machine-readable structure intact. Because the code names an error helper, it adds the errors section and the error-helper hook from the full template, or offers to. Then it points at the wire command.",
+      "expectations": [
+        "Runs the gap interview before writing the file, asking one question at a time rather than a batch questionnaire",
+        "Writes the short contract (north star, five rules, the parsed tables the code fills) rather than the full template, which it uses only if the user asks for it",
+        "Pre-fills tokens, typography, and animation from the code facts instead of asking the user for values the code already reveals",
+        "Output preserves the <!-- qd-vision-template: v1 --> version marker, the <!-- qd:* --> section anchors, and the frozen table headers exactly",
+        "The declared token values #0f172a, #fcfcfd, and #4338ca appear as backticked literals in the tokens table, and src/theme/tokens.ts appears as the tokens-path lint hook",
+        "Writes VISION.md at the project root and tells the user to run npx design-fleet vision --wire (or offers to write the .cursor/rules/vision.mdc pointer and CLAUDE.md import block directly)"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Brand-new repo, zero UI code written yet. I want the project design rules and hard rails set up before we build the first screen. Create the vision doc.",
+      "expected_output": "Should recognize the greenfield path: skip code extraction entirely, run the interview only, and produce the short VISION.md (the default) where the tables that need code (lint hooks, tokens, spacing, animation) keep their [PLACEHOLDER] values, so they read as empty and switch on no check until the code exists.",
+      "expectations": [
+        "Skips the codebase extraction step and does not claim to have found any tokens, fonts, or timings",
+        "Conducts the gap interview one question at a time (north star, component families, project rules), without the full template's app-shell or selection questions",
+        "Extraction-fed sections keep the uppercase [PLACEHOLDER] grammar instead of invented literal values",
+        "Writes the short template's structure with the version marker, anchors and frozen table headers intact, and does not switch to the full template unasked",
+        "Explains that placeholders fill in as the project grows and reconcile mode tracks the gap"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "We refactored src/screens/ into src/features/ last month and bumped modal animations from 200ms to 240ms. My VISION.md still says the canonical layout reference is src/screens/OnboardingStep.tsx and modal cards animate at 200ms. Check the vision doc against the code.",
+      "expected_output": "Should run reconcile mode (not a re-draft): verify canonical paths, detect that src/screens/OnboardingStep.tsx no longer exists, detect the 200ms vs 240ms timing contradiction, and for each finding ask whether the doc or the code is the source of truth, proposing the specific edit for the chosen side.",
+      "expectations": [
+        "Defaults to reconcile mode because VISION.md exists: it does not start a fresh draft or overwrite the doc",
+        "Reports src/screens/OnboardingStep.tsx as a canonical path that no longer exists",
+        "Finds where the file moved under src/features/, or asks for the new path, and proposes the exact replacement row quoting that path",
+        "Reports the contradiction with both values quoted: 200ms in VISION.md and 240ms in the code",
+        "Asks per finding which side is the source of truth, and leaves both VISION.md and the code untouched until the person answers"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Run plan mode. FEEDBACK.md contains:\n- 2026-07-08: sales says three prospects asked for CSV export of the reports table\n- 2026-07-09: two support tickets: users confused about what happens to shared boards when someone deletes their account\n- 2026-07-10: a churned customer said the app 'feels slow to get value from'\nOur VISION.md has a Goals table (G1 active: 'onboarding completes in under 3 minutes', verified agent:) and a north star about small agencies reporting to clients.",
+      "expected_output": "Proposed Goals rows only (never built, never promoted). CSV-export item should be flip-tested from feature to outcome; the deletion item should surface the unmade decision explicitly; the vague 'slow to get value' should be rewritten checkable or reported unplannable; dedup against G1.",
+      "expectations": [
+        "Recognizes 'CSV export' as a solution in disguise and rewrites it as the user outcome behind it (e.g. an agency handing usable report numbers to a client) before proposing it as a goal, rather than proposing the feature verbatim",
+        "Treats the shared-boards-on-account-deletion feedback as an unmade product decision and surfaces it as an explicit decision item (what should happen, options named) instead of silently proposing a default behavior",
+        "Handles the vague 'feels slow to get value' by either rewriting it into checkable statements or explicitly reporting it unplannable with what's missing — refusing to add a vibes goal",
+        "Every proposed row carries a Verification cell in the contract grammar (exists:/lint:/render:/agent:, where render: means a complete design-fleet render report for that exact path or URL) and status 'proposed'",
+        "Dedups against the existing G1 onboarding goal (does not re-propose onboarding speed) and never changes any existing Status cell or builds anything",
+        "Annotates which FEEDBACK.md bullets map to which proposal ids without deleting inbox entries"
+      ]
+    }
+  ]
+}

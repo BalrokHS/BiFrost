@@ -1,0 +1,51 @@
+{
+  "skill_name": "motion-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/motion-audit quick — this dashboard's motion feels inconsistent; find what matters most.",
+      "expected_output": "Maps the motion first (stack with versions, personality from VISION.md, DECIDED feedback and the taste profile, frequency per surface), audits only the most used surfaces at quick effort, re-reads every finding at its file and line before reporting, and returns a short table ranked by leverage whose values cite the frontend-design motion references or lint IDs instead of invented numbers. 'The motion here needs no change' is an acceptable result. No source file is modified.",
+      "expectations": [
+        "Reads VISION.md's animation timing table, DECIDED entries in FEEDBACK.md and the taste profile's motion section as the personality input instead of guessing",
+        "Checks each finding against the actual code at its file and line before reporting it",
+        "Ranks findings by leverage and keeps to the quick-effort cap instead of listing everything",
+        "Quotes exact values from the canonical references or lint IDs and labels A1, A2, A4 and A5 findings as agent review, never as lint results",
+        "Stops at the findings table for the person's pick and changes no source file"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "sync",
+      "expected_output": "Checks every plan in plans/motion/ against the current code: marks done what the code now shows, refreshes stale excerpts against the current commit, retires findings the code no longer exhibits, and updates plans/motion/README.md's order and status column. Touches no source file, no contract table and never the project's own plans/README.md.",
+      "expectations": [
+        "Reads every plan in plans/motion/ and checks each against the current code before changing its status",
+        "Marks a plan done only when the code shows it, and keeps checks that need a browser or a person open, saying why",
+        "Refreshes stale excerpts and commit stamps rather than leaving dead references",
+        "Changes only plans/motion/ files: never source files, VISION.md, existing FEEDBACK.md entries or the project's plans/README.md"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "plan the drawer-easing finding",
+      "expected_output": "Writes one plan at plans/motion/NNN-slug.md that an agent with no context can carry out: commit stamp, a drift guard that stops when HEAD and the excerpt disagree, a stack block with the primitive library and versions, the current code quoted for matching, every target value with a line saying where it came from, an exemplar file in the repo, explicit out-of-scope items, a contract row that either quotes the VISION.md timing or proposes the exact row diff for the person, commands to run, browser checks including reduced motion, and human checks marked so a headless executor reports them as not verified.",
+      "expectations": [
+        "The plan is self-contained: commit stamp, drift guard, stack block, excerpt to match (not line numbers alone) and an exemplar file",
+        "Every target value carries a one-line source: the VISION.md row or the reference file",
+        "Uses the worked target that matches the stack (Radix keyframes on data-state, or Base UI transitions on data-starting-style and data-ending-style) and never mixes them",
+        "Proposes any missing token, timing row or dependency for the person instead of adding it, and says the executor must not commit",
+        "Verification lists commands, a reduced-motion check where nothing travels or scales, and human-only checks marked as such"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "execute plans/motion/002-menu-reduced-motion.md",
+      "expected_output": "Before changing anything, asks the person for a yes: names the plan, lists the files it will change in the current working tree, and says nothing will be committed. Creates no worktree, branch or commit. After a yes, carries out the plan as written, stops if the commit stamp and excerpt no longer match, runs the plan's commands, reviews the diff with design-review's motion review, and reports the verdict with the plan's human checks under Not verified.",
+      "expectations": [
+        "Asks first and waits for the person's yes before editing any file",
+        "Creates no git worktree, branch, stash or commit, and leaves the changes in the working tree",
+        "Stops and reports when HEAD differs from the plan's commit and an excerpt no longer matches",
+        "Reports the motion review verdict and lists the human checks as not verified"
+      ]
+    }
+  ]
+}

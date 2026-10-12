@@ -1,6 +1,8 @@
 import SwiftUI
 
-struct VPNCard: View {
+/// One profile in the dashboard list: identity, server, live status and the
+/// actions, on a single row.
+struct VPNProfileRow: View {
     @Environment(VPNController.self) private var controller
     let profile: VPNProfile
 
@@ -10,53 +12,37 @@ struct VPNCard: View {
     @State private var hovering = false
 
     private var state: ConnectionState { controller.state(for: profile) }
-    private var accent: Color { profile.accent.tint }
     private var hasLogs: Bool { !(controller.connectionLogs[profile.id] ?? "").isEmpty }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
+        HStack(spacing: 12) {
+            IconBadge(
+                symbol: profile.provider.symbol,
+                tint: state == .connected ? profile.accent.tint : Theme.Palette.textSecondary
+            )
 
-            fullBleedDivider
-                .padding(.vertical, 15)
+            identity
+                .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
 
-            metrics
+            serverColumn
+                .frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: 16)
+            StatusLabel(state: state)
+                .frame(width: 112, alignment: .leading)
+
+            sessionColumn
+                .frame(width: 76, alignment: .leading)
 
             actions
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 214, alignment: .topLeading)
-        .background {
-            // A soft bloom of the profile's own colour, lit only while the
-            // tunnel is up. It is what makes a live card read across the room.
-            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .fill(accent)
-                .blur(radius: 32)
-                .scaleEffect(0.92)
-                .opacity(state == .connected ? 0.24 : 0)
-        }
-        .glassCard(tint: state == .connected ? accent.opacity(0.14) : nil)
-        .overlay(alignment: .top) {
-            // A lit top edge: present only on live cards, and faded at both
-            // ends so it never looks like a border.
-            LinearGradient(
-                colors: [.clear, profile.accent.highlight.opacity(0.85), .clear],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-            .frame(height: 1)
-            .padding(.horizontal, 24)
-            .opacity(state == .connected ? 1 : 0)
-        }
-        .shadow(color: .black.opacity(hovering ? 0.4 : 0.28), radius: hovering ? 20 : 13, y: hovering ? 8 : 5)
-        .scaleEffect(hovering ? 1.006 : 1)
-        .animation(Theme.Motion.state, value: state)
-        .animation(Theme.Motion.hover, value: hovering)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(minHeight: 48)
+        .background(hovering ? Theme.Palette.surface : .clear)
         .onHover { hovering = $0 }
+        .animation(Theme.Motion.hover, value: hovering)
         .sheet(isPresented: $showingLogs) {
-            VPNLogView(profileID: profile.id, profileName: profile.name, accent: accent)
+            VPNLogView(profileID: profile.id, profileName: profile.name)
                 .environment(controller)
         }
         .sheet(isPresented: $showingEditor) {
@@ -71,82 +57,53 @@ struct VPNCard: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - Columns
 
-    private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            IconBadge(
-                symbol: profile.provider.symbol,
-                tint: accent,
-                highlight: profile.accent.highlight,
-                size: 38
-            )
+    private var identity: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(profile.name)
+                .font(.rowTitle)
+                .foregroundStyle(Theme.Palette.textPrimary)
+                .lineLimit(1)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(profile.name)
-                    .font(.cardTitle)
-                    .foregroundStyle(Theme.Palette.textPrimary)
-                    .lineLimit(1)
-
-                Text(profile.provider.rawValue)
-                    .font(.caption11)
-                    .foregroundStyle(Theme.Palette.textTertiary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 8)
-
-            StatusPill(state: state, compact: true)
+            Text("\(profile.provider.rawValue) · \(profile.authentication.rawValue)")
+                .font(.caption11)
+                .foregroundStyle(Theme.Palette.textTertiary)
+                .lineLimit(1)
         }
     }
 
-    private var fullBleedDivider: some View {
-        Rectangle()
-            .fill(Theme.Palette.hairline)
-            .frame(height: 1)
-            .padding(.horizontal, -18)
+    private var serverColumn: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(profile.server)
+                .font(.caption12)
+                .foregroundStyle(Theme.Palette.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            Text(profile.dnsDomains.isEmpty
+                 ? "No split DNS"
+                 : "DNS: \(profile.dnsDomains.joined(separator: ", "))")
+                .font(.caption11)
+                .foregroundStyle(Theme.Palette.textTertiary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
     }
 
-    // MARK: - Readouts
-
-    private var metrics: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            MetricRow(label: "Server", value: profile.server, symbol: "server.rack")
-
-            MetricRow(
-                label: "Auth",
-                value: profile.authentication.rawValue,
-                symbol: "person.badge.key.fill"
-            )
-
-            if let interfaceName = controller.interfaceName(for: profile) {
-                MetricRow(
-                    label: "Interface",
-                    value: interfaceName,
-                    tone: ConnectionState.connected.tone,
-                    symbol: "network"
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
+    private var sessionColumn: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let since = controller.connectedSince(for: profile) {
+                ElapsedTime(since: since)
+                    .font(.caption12)
+                    .foregroundStyle(Theme.Palette.textSecondary)
             }
 
-            if let since = controller.connectedSince(for: profile) {
-                MetricRow(label: "Uptime", symbol: "clock") {
-                    ElapsedTime(since: since)
-                }
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            } else if profile.dnsDomains.isEmpty {
-                MetricRow(
-                    label: "Split DNS",
-                    value: "Not configured",
-                    tone: Theme.Palette.textTertiary,
-                    symbol: "arrow.triangle.branch"
-                )
-            } else {
-                MetricRow(
-                    label: "Split DNS",
-                    value: profile.dnsDomains.joined(separator: ", "),
-                    symbol: "arrow.triangle.branch"
-                )
+            if let interfaceName = controller.interfaceName(for: profile) {
+                Text(interfaceName)
+                    .font(.caption11)
+                    .foregroundStyle(Theme.Palette.textTertiary)
+                    .lineLimit(1)
             }
         }
     }
@@ -154,44 +111,37 @@ struct VPNCard: View {
     // MARK: - Actions
 
     private var actions: some View {
-        HStack(spacing: 9) {
-            if state == .connecting || state == .disconnecting {
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
-                        .scaleEffect(0.8)
-                    Text(state.rawValue)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(state.tone)
+        HStack(spacing: 4) {
+            Group {
+                if state == .connecting || state == .disconnecting {
+                    HStack(spacing: 6) {
+                        ProgressView()
+                            .controlSize(.small)
+                            .scaleEffect(0.7)
+                        Text(state.rawValue)
+                            .font(.caption12)
+                            .foregroundStyle(Theme.Palette.textSecondary)
+                    }
+                } else if state.isDisconnectable {
+                    Button("Disconnect") { controller.toggle(profile) }
+                        .buttonStyle(.quietDestructive)
+                } else {
+                    Button("Connect") { controller.toggle(profile) }
+                        .buttonStyle(.accent)
                 }
-                .padding(.vertical, 8)
-            } else if state.isDisconnectable {
-                Button {
-                    controller.toggle(profile)
-                } label: {
-                    Label("Disconnect", systemImage: "stop.fill")
-                }
-                .buttonStyle(.quietDestructive)
-            } else {
-                Button {
-                    controller.toggle(profile)
-                } label: {
-                    Label("Connect", systemImage: "play.fill")
-                }
-                .buttonStyle(.accent(accent))
             }
+            .frame(width: 96, alignment: .trailing)
 
-            Spacer(minLength: 0)
-
-            if hasLogs {
-                Button {
-                    showingLogs = true
-                } label: {
-                    Label("Logs", systemImage: "text.alignleft")
-                }
-                .buttonStyle(.iconAction)
-                .help("Show the connection log")
+            Button {
+                showingLogs = true
+            } label: {
+                Label("Logs", systemImage: "text.alignleft")
             }
+            .buttonStyle(.iconAction)
+            .help("Show the connection log")
+            .opacity(hasLogs ? 1 : 0)
+            .allowsHitTesting(hasLogs)
+            .accessibilityHidden(!hasLogs)
 
             Menu {
                 Button("Edit profile", systemImage: "pencil") {
@@ -221,16 +171,13 @@ private struct VPNLogView: View {
 
     let profileID: VPNProfile.ID
     let profileName: String
-    let accent: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 12) {
-                IconBadge(symbol: "text.alignleft", tint: accent, size: 34)
-
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Connection log")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.viewTitle)
                         .foregroundStyle(Theme.Palette.textPrimary)
                     Text(profileName)
                         .font(.caption12)
@@ -253,9 +200,9 @@ private struct VPNLogView: View {
                     .padding(16)
             }
             .scrollContentBackground(.hidden)
-            .mattePanel(radius: Theme.Radius.panel, fill: Theme.Palette.canvasDeep.opacity(0.6))
+            .mattePanel(radius: Theme.Radius.panel, fill: Theme.Palette.canvasDeep)
         }
-        .padding(22)
+        .padding(20)
         .frame(minWidth: 740, minHeight: 480)
         .background(Theme.Palette.canvas)
         .preferredColorScheme(.dark)

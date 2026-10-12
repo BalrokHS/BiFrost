@@ -25,8 +25,7 @@ struct BifrostApp: App {
                 .frame(minWidth: 940, minHeight: 640)
         }
         .defaultSize(width: 1140, height: 760)
-        // The ambient backdrop runs edge to edge; a title bar chrome strip
-        // across the top would cut it in half.
+        // The flat canvas runs edge to edge; the views draw their own header.
         .windowStyle(.hiddenTitleBar)
 
         MenuBarExtra {

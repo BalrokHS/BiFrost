@@ -15,7 +15,7 @@ struct CredentialPromptView: View {
     @FocusState private var focused: Field?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 16) {
             header
 
             // Both inputs are masked, so each one states what it is. Without a
@@ -25,7 +25,7 @@ struct CredentialPromptView: View {
                     .font(.caption12)
                     .foregroundStyle(Theme.Palette.textSecondary)
                     .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .mattePanel(radius: Theme.Radius.control)
             } else {
@@ -62,10 +62,10 @@ struct CredentialPromptView: View {
                     .font(.caption12)
                     .foregroundStyle(ConnectionState.failed.tone)
                     .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .mattePanel(radius: Theme.Radius.control, fill: ConnectionState.failed.tone.opacity(0.10))
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(.opacity)
             }
 
             HStack(spacing: 10) {
@@ -83,8 +83,8 @@ struct CredentialPromptView: View {
             }
             .padding(.top, 2)
         }
-        .padding(24)
-        .frame(width: 460)
+        .padding(20)
+        .frame(width: 440)
         .background(Theme.Palette.canvas)
         .preferredColorScheme(.dark)
         .interactiveDismissDisabled()
@@ -95,17 +95,12 @@ struct CredentialPromptView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 13) {
-            IconBadge(
-                symbol: "person.badge.key.fill",
-                tint: Theme.Palette.brand,
-                highlight: Theme.Palette.brandBright,
-                size: 44
-            )
+        HStack(spacing: 12) {
+            BrandMark(height: 26)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Authenticate")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.viewTitle)
                     .foregroundStyle(Theme.Palette.textPrimary)
                 Text(request.profileName)
                     .font(.caption12)
@@ -124,7 +119,9 @@ struct CredentialPromptView: View {
         @ViewBuilder accessory: () -> Accessory
     ) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            Eyebrow(title, tone: Theme.Palette.textSecondary)
+            Text(title)
+                .font(.rowTitle)
+                .foregroundStyle(Theme.Palette.textPrimary)
 
             SecureField("", text: text, prompt: Text(prompt))
                 .textFieldStyle(.plain)

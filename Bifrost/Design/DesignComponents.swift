@@ -2,101 +2,39 @@ import SwiftUI
 
 // MARK: - Brand
 
-/// A scalable, truly transparent wordmark assembled from the app's vector
-/// status glyph and native type. This stays crisp in compact chrome without
-/// depending on a raster image background.
-struct BifrostWordmark: View {
-    enum Style {
-        case monochrome
-        case color
-    }
-
-    let style: Style
-    var height: CGFloat = 32
+/// The Bifrost mark and wordmark, from the trimmed brand artwork. The only
+/// full-colour element in the app, so it is the one thing that reads as brand.
+struct BrandLockup: View {
+    var height: CGFloat = 28
 
     var body: some View {
-        HStack(spacing: height * 0.22) {
-            if style == .monochrome {
-                Image("BifrostStatusGlyph")
-                    .resizable()
-                    .renderingMode(.template)
-                    .scaledToFit()
-                    .foregroundStyle(Theme.Palette.textPrimary)
-                    .frame(width: height * 1.55, height: height)
-            } else {
-                Image("BifrostMark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: height, height: height)
-            }
-
-            Text("Bifrost")
-                .font(.system(size: height * 0.72, weight: .bold, design: .rounded))
-                .tracking(-height * 0.012)
-                .foregroundStyle(Theme.Palette.textPrimary)
-        }
-        .fixedSize()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Bifrost")
+        Image("BifrostFullLogo")
+            .resizable()
+            .scaledToFit()
+            .frame(height: height)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Bifrost")
     }
 }
 
-/// A restrained atmospheric canvas behind the glass. The light follows the
-/// connected profile palette, but stays dim enough for long working sessions.
-struct AmbientBackdrop: View {
-    let accent: Color
-    let secondary: Color
-    var intensity: Double = 1
+/// The mark alone, trimmed to its content, for tight spots and empty states.
+struct BrandMark: View {
+    var height: CGFloat = 24
 
     var body: some View {
-        ZStack {
-            Theme.Palette.canvasDeep
-
-            RadialGradient(
-                colors: [accent.opacity(0.16 * intensity), .clear],
-                center: .topTrailing,
-                startRadius: 12,
-                endRadius: 560
-            )
-
-            RadialGradient(
-                colors: [secondary.opacity(0.09 * intensity), .clear],
-                center: .bottomLeading,
-                startRadius: 10,
-                endRadius: 500
-            )
-
-            LinearGradient(
-                colors: [Color.white.opacity(0.018), .clear, Color.black.opacity(0.12)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-        .ignoresSafeArea()
+        Image("BifrostMark")
+            .resizable()
+            .scaledToFit()
+            .frame(height: height)
+            .accessibilityHidden(true)
     }
 }
 
 // MARK: - Surfaces
 
 extension View {
-    /// A floating, interactive surface: Liquid Glass plus a lit rim so the
-    /// panel keeps an edge against the very dark backdrop, which glass alone
-    /// does not give you.
-    func glassCard(
-        radius: CGFloat = Theme.Radius.card,
-        tint: Color? = nil,
-        interactive: Bool = true
-    ) -> some View {
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        return glassEffect(
-            interactive ? .regular.tint(tint).interactive() : .regular.tint(tint),
-            in: shape
-        )
-        .overlay(shape.strokeBorder(Theme.Palette.rim, lineWidth: 1))
-    }
-
-    /// A matte surface for content that sits still — settings sections, rows.
-    /// Cheaper than glass and quieter next to it.
+    /// A matte surface for content that sits still: settings sections, the
+    /// profile list. Flat fill, hairline edge, no shadow.
     func mattePanel(
         radius: CGFloat = Theme.Radius.panel,
         fill: Color = Theme.Palette.surface,
@@ -106,231 +44,76 @@ extension View {
         return background(shape.fill(fill))
             .overlay(shape.strokeBorder(stroked ? Theme.Palette.hairline : .clear, lineWidth: 1))
     }
-
-    /// Fades the view in from below. Used to stagger content on first paint.
-    func appearLift(_ delay: Double) -> some View {
-        modifier(AppearLift(delay: delay))
-    }
-}
-
-private struct AppearLift: ViewModifier {
-    let delay: Double
-    @State private var shown = false
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 10)
-            .onAppear {
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.9).delay(delay)) {
-                    shown = true
-                }
-            }
-    }
-}
-
-// MARK: - Text
-
-/// Small tracked capitals that title a region without competing with it.
-struct Eyebrow: View {
-    let text: String
-    var tone: Color = Theme.Palette.textTertiary
-
-    init(_ text: String, tone: Color = Theme.Palette.textTertiary) {
-        self.text = text
-        self.tone = tone
-    }
-
-    var body: some View {
-        Text(text.uppercased())
-            .font(.eyebrow)
-            .tracking(1.2)
-            .foregroundStyle(tone)
-    }
-}
-
-/// A region title with an optional count, sitting above a group of cards.
-struct SectionHeading: View {
-    let title: String
-    var count: Int?
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Text(title)
-                .font(.panelTitle)
-                .foregroundStyle(Theme.Palette.textPrimary)
-
-            if let count {
-                Text("\(count)")
-                    .font(.readoutSmall)
-                    .foregroundStyle(Theme.Palette.textTertiary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Theme.Palette.surface))
-                    .overlay(Capsule().strokeBorder(Theme.Palette.hairline, lineWidth: 1))
-            }
-
-            Rectangle()
-                .fill(Theme.Palette.hairline)
-                .frame(height: 1)
-        }
-    }
 }
 
 // MARK: - Status
 
-/// The connection light. Breathes while a tunnel is up or in transition, and
-/// sits perfectly still otherwise, so idle profiles never pull the eye.
+/// The connection light: one small flat dot, still in every state.
 struct StatusDot: View {
-    let state: ConnectionState
+    let tone: Color
     var size: CGFloat = 7
 
-    @State private var expanded = false
+    init(tone: Color, size: CGFloat = 7) {
+        self.tone = tone
+        self.size = size
+    }
+
+    init(state: ConnectionState, size: CGFloat = 7) {
+        self.init(tone: state.tone, size: size)
+    }
 
     var body: some View {
         Circle()
-            .fill(state.tone)
+            .fill(tone)
             .frame(width: size, height: size)
-            .shadow(color: state.tone.opacity(state == .disconnected ? 0 : 0.7), radius: size * 0.8)
-            .background {
-                if state.animatesIndicator {
-                    Circle()
-                        .stroke(state.tone.opacity(0.55), lineWidth: 1)
-                        .frame(width: size, height: size)
-                        .scaleEffect(expanded ? 3.1 : 1)
-                        .opacity(expanded ? 0 : 0.9)
-                }
-            }
-            .task(id: state) {
-                expanded = false
-                guard state.animatesIndicator else { return }
-                withAnimation(.easeOut(duration: 1.9).repeatForever(autoreverses: false)) {
-                    expanded = true
-                }
-            }
     }
 }
 
-/// Dot plus label in a tinted capsule. The app's single way of saying what a
-/// connection is doing.
-struct StatusPill: View {
-    let state: ConnectionState
-    var compact = false
+/// Dot plus grey label. The app's single way of saying what a connection or an
+/// engine is doing; only the dot carries the status colour.
+struct StatusLabel: View {
+    let title: String
+    let tone: Color
+
+    init(title: String, tone: Color) {
+        self.title = title
+        self.tone = tone
+    }
+
+    init(state: ConnectionState) {
+        self.init(title: state.shortLabel, tone: state.tone)
+    }
 
     var body: some View {
         HStack(spacing: 6) {
-            StatusDot(state: state, size: compact ? 6 : 7)
-            Text(state.shortLabel)
-                .font(.system(size: compact ? 10.5 : 11.5, weight: .medium))
-                .foregroundStyle(state.tone)
-                .fixedSize()
+            StatusDot(tone: tone, size: 6)
+            Text(title)
+                .font(.caption12)
+                .foregroundStyle(Theme.Palette.textSecondary)
+                .lineLimit(1)
         }
-        .padding(.horizontal, compact ? 7 : 9)
-        .padding(.vertical, compact ? 3 : 4.5)
-        .background(Capsule().fill(state.tone.opacity(0.13)))
-        .overlay(Capsule().strokeBorder(state.tone.opacity(0.24), lineWidth: 1))
     }
 }
 
 // MARK: - Glyphs
 
-/// A provider or feature glyph in a gradient-lit squircle.
+/// A provider glyph in a flat square. Grey until `tint` is given.
 struct IconBadge: View {
     let symbol: String
-    var tint: Color = Theme.Palette.brand
-    var highlight: Color?
-    var size: CGFloat = 38
+    var tint: Color = Theme.Palette.textSecondary
+    var size: CGFloat = 28
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
         Image(systemName: symbol)
-            .font(.system(size: size * 0.42, weight: .medium))
-            .foregroundStyle(
-                LinearGradient(
-                    colors: [highlight ?? tint, tint],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
+            .font(.system(size: size * 0.46, weight: .medium))
+            .foregroundStyle(tint)
             .frame(width: size, height: size)
-            .background(
-                shape.fill(
-                    LinearGradient(
-                        colors: [tint.opacity(0.24), tint.opacity(0.08)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-            )
-            .overlay(shape.strokeBorder(tint.opacity(0.28), lineWidth: 1))
-            .shadow(color: tint.opacity(0.22), radius: 8, y: 3)
+            .background(shape.fill(Theme.Palette.surfaceRaised))
     }
 }
 
 // MARK: - Readouts
-
-/// A label/value pair. Values are monospaced so hostnames, interface names and
-/// timers stay aligned down the column and do not jitter as they update.
-struct MetricRow<Value: View>: View {
-    let label: String
-    var tone: Color = Theme.Palette.textSecondary
-    var symbol: String?
-    var labelWidth: CGFloat = 66
-    @ViewBuilder var value: () -> Value
-
-    init(
-        label: String,
-        tone: Color = Theme.Palette.textSecondary,
-        symbol: String? = nil,
-        labelWidth: CGFloat = 66,
-        @ViewBuilder value: @escaping () -> Value
-    ) {
-        self.label = label
-        self.tone = tone
-        self.symbol = symbol
-        self.labelWidth = labelWidth
-        self.value = value
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Text(label)
-                .font(.caption11)
-                .foregroundStyle(Theme.Palette.textTertiary)
-                .frame(width: labelWidth, alignment: .leading)
-
-            if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(tone.opacity(0.8))
-                    .frame(width: 12)
-            }
-
-            value()
-                .font(.readout)
-                .foregroundStyle(tone)
-                .monospacedDigit()
-                .lineLimit(1)
-                .truncationMode(.middle)
-
-            Spacer(minLength: 0)
-        }
-    }
-}
-
-extension MetricRow where Value == Text {
-    init(
-        label: String,
-        value: String,
-        tone: Color = Theme.Palette.textSecondary,
-        symbol: String? = nil,
-        labelWidth: CGFloat = 66
-    ) {
-        self.init(label: label, tone: tone, symbol: symbol, labelWidth: labelWidth) {
-            Text(value)
-        }
-    }
-}
 
 /// A running `hh:mm:ss` counter since a fixed instant.
 struct ElapsedTime: View {
@@ -339,6 +122,7 @@ struct ElapsedTime: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             Text(Self.formatted(context.date.timeIntervalSince(since)))
+                .monospacedDigit()
         }
     }
 
@@ -353,20 +137,18 @@ struct ElapsedTime: View {
 
 // MARK: - Buttons
 
-/// The one call to action in a region: filled, tinted, and lit from behind.
+/// The one call to action in a region: a flat brand fill.
 struct AccentActionStyle: ButtonStyle {
     var tint: Color = Theme.Palette.brand
-    var filled = true
     var compact = false
 
     func makeBody(configuration: Configuration) -> some View {
-        StyleBody(configuration: configuration, tint: tint, filled: filled, compact: compact)
+        StyleBody(configuration: configuration, tint: tint, compact: compact)
     }
 
     private struct StyleBody: View {
         let configuration: ButtonStyleConfiguration
         let tint: Color
-        let filled: Bool
         let compact: Bool
 
         @State private var hovering = false
@@ -374,37 +156,12 @@ struct AccentActionStyle: ButtonStyle {
         var body: some View {
             let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
             configuration.label
-                .font(.system(size: compact ? 11.5 : 12.5, weight: .semibold))
-                .foregroundStyle(filled ? .white : tint)
-                .padding(.horizontal, compact ? 11 : 14)
-                .padding(.vertical, compact ? 6 : 8)
-                .background {
-                    if filled {
-                        shape.fill(
-                            LinearGradient(
-                                colors: [
-                                    tint.opacity(hovering ? 1 : 0.94),
-                                    tint.opacity(hovering ? 0.88 : 0.78)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                    } else {
-                        shape.fill(tint.opacity(hovering ? 0.20 : 0.12))
-                    }
-                }
-                .overlay(
-                    shape.strokeBorder(
-                        filled ? .white.opacity(0.22) : tint.opacity(0.30),
-                        lineWidth: 1
-                    )
-                )
-                .shadow(
-                    color: filled ? tint.opacity(hovering ? 0.45 : 0.26) : .clear,
-                    radius: hovering ? 13 : 8,
-                    y: 3
-                )
+                .font(.system(size: compact ? 11.5 : 12.5, weight: .medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, compact ? 10 : 12)
+                .frame(minHeight: compact ? 26 : 30)
+                .background(shape.fill(hovering ? Theme.Palette.brandHover : tint))
+                .contentShape(shape)
                 .scaleEffect(configuration.isPressed ? 0.97 : 1)
                 .animation(Theme.Motion.hover, value: hovering)
                 .animation(Theme.Motion.press, value: configuration.isPressed)
@@ -413,7 +170,7 @@ struct AccentActionStyle: ButtonStyle {
     }
 }
 
-/// Everything that is not the call to action.
+/// Everything that is not the call to action: an outlined, transparent button.
 struct QuietActionStyle: ButtonStyle {
     var compact = false
     var destructive = false
@@ -430,7 +187,7 @@ struct QuietActionStyle: ButtonStyle {
         @State private var hovering = false
 
         private var foreground: Color {
-            if destructive { return Color(hex: 0xF2565B) }
+            if destructive { return Theme.Palette.danger }
             return hovering ? Theme.Palette.textPrimary : Theme.Palette.textSecondary
         }
 
@@ -439,21 +196,22 @@ struct QuietActionStyle: ButtonStyle {
             configuration.label
                 .font(.system(size: compact ? 11.5 : 12.5, weight: .medium))
                 .foregroundStyle(foreground)
-                .padding(.horizontal, compact ? 10 : 13)
-                .padding(.vertical, compact ? 6 : 8)
+                .padding(.horizontal, compact ? 9 : 11)
+                .frame(minHeight: compact ? 26 : 30)
                 .background(
                     shape.fill(
-                        destructive
-                            ? Color(hex: 0xF2565B).opacity(hovering ? 0.16 : 0.09)
-                            : (hovering ? Theme.Palette.surfaceHover : Theme.Palette.surface)
+                        hovering
+                            ? (destructive ? Theme.Palette.danger.opacity(0.12) : Theme.Palette.surfaceHover)
+                            : .clear
                     )
                 )
                 .overlay(
                     shape.strokeBorder(
-                        destructive ? Color(hex: 0xF2565B).opacity(0.28) : Theme.Palette.hairline,
+                        destructive ? Theme.Palette.danger.opacity(0.3) : Theme.Palette.hairlineBright,
                         lineWidth: 1
                     )
                 )
+                .contentShape(shape)
                 .scaleEffect(configuration.isPressed ? 0.97 : 1)
                 .animation(Theme.Motion.hover, value: hovering)
                 .animation(Theme.Motion.press, value: configuration.isPressed)
@@ -462,7 +220,7 @@ struct QuietActionStyle: ButtonStyle {
     }
 }
 
-/// A square, icon-only control for secondary affordances on a card.
+/// A square, icon-only control for secondary affordances.
 struct IconActionStyle: ButtonStyle {
     var size: CGFloat = 28
 
@@ -477,14 +235,14 @@ struct IconActionStyle: ButtonStyle {
         @State private var hovering = false
 
         var body: some View {
-            let shape = RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
+            let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
             configuration.label
                 .labelStyle(.iconOnly)
-                .font(.system(size: size * 0.42, weight: .medium))
+                .font(.system(size: size * 0.46, weight: .medium))
                 .foregroundStyle(hovering ? Theme.Palette.textPrimary : Theme.Palette.textSecondary)
                 .frame(width: size, height: size)
-                .background(shape.fill(hovering ? Theme.Palette.surfaceHover : Theme.Palette.surface))
-                .overlay(shape.strokeBorder(Theme.Palette.hairline, lineWidth: 1))
+                .background(shape.fill(hovering ? Theme.Palette.surfaceHover : .clear))
+                .contentShape(shape)
                 .scaleEffect(configuration.isPressed ? 0.94 : 1)
                 .animation(Theme.Motion.hover, value: hovering)
                 .animation(Theme.Motion.press, value: configuration.isPressed)
@@ -494,9 +252,11 @@ struct IconActionStyle: ButtonStyle {
 }
 
 extension ButtonStyle where Self == AccentActionStyle {
-    static func accent(_ tint: Color, filled: Bool = true, compact: Bool = false) -> Self {
-        AccentActionStyle(tint: tint, filled: filled, compact: compact)
+    static func accent(_ tint: Color, compact: Bool = false) -> Self {
+        AccentActionStyle(tint: tint, compact: compact)
     }
+
+    static var accentCompact: Self { AccentActionStyle(compact: true) }
 
     static var accent: Self { AccentActionStyle() }
 }
@@ -515,11 +275,9 @@ extension ButtonStyle where Self == IconActionStyle {
 // MARK: - Settings layout
 
 /// A titled panel. Settings and the profile editor are built from these rather
-/// than from `Form`, whose grouped background fights the ambient backdrop.
+/// than from `Form`, whose grouped background does not match the flat canvas.
 struct SettingsCard<Content: View>: View {
     let title: String
-    var symbol: String?
-    var tint: Color = Theme.Palette.brand
     var spacing: CGFloat?
     var dense = false
     var fillsHeight = false
@@ -527,43 +285,30 @@ struct SettingsCard<Content: View>: View {
 
     init(
         _ title: String,
-        symbol: String? = nil,
-        tint: Color = Theme.Palette.brand,
         spacing: CGFloat? = nil,
         dense: Bool = false,
         fillsHeight: Bool = false,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
-        self.symbol = symbol
-        self.tint = tint
         self.spacing = spacing
         self.dense = dense
         self.fillsHeight = fillsHeight
         self.content = content
     }
 
-    private var inset: CGFloat { dense ? 12 : 18 }
-    private var rowSpacing: CGFloat { spacing ?? (dense ? 10 : 14) }
+    private var inset: CGFloat { dense ? 12 : 14 }
+    private var rowSpacing: CGFloat { spacing ?? 10 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: dense ? 8 : 10) {
-                if let symbol {
-                    IconBadge(symbol: symbol, tint: tint, size: dense ? 22 : 26)
-                }
-                Text(title)
-                    .font(.panelTitle)
-                    .foregroundStyle(Theme.Palette.textPrimary)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, inset)
-            .padding(.top, dense ? 10 : 15)
-            .padding(.bottom, dense ? 9 : 13)
+            Text(title)
+                .font(.panelTitle)
+                .foregroundStyle(Theme.Palette.textPrimary)
+                .padding(.horizontal, inset)
+                .frame(height: 36, alignment: .leading)
 
-            Rectangle()
-                .fill(Theme.Palette.hairline)
-                .frame(height: 1)
+            HairlineRule()
 
             VStack(alignment: .leading, spacing: rowSpacing) {
                 content()
@@ -638,18 +383,17 @@ struct HairlineRule: View {
 }
 
 extension View {
-    /// Input chrome: a recessed well rather than a raised control, so fields
-    /// read as holes cut into the panel.
+    /// Input chrome: a recessed well rather than a raised control.
     func fieldChrome(focused: Bool = false) -> some View {
         let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
         return font(.body13)
             .foregroundStyle(Theme.Palette.textPrimary)
-            .padding(.horizontal, 11)
-            .padding(.vertical, 8)
-            .background(shape.fill(Theme.Palette.canvasDeep.opacity(0.55)))
+            .padding(.horizontal, 10)
+            .frame(minHeight: 30)
+            .background(shape.fill(Theme.Palette.canvasDeep))
             .overlay(
                 shape.strokeBorder(
-                    focused ? Theme.Palette.brand.opacity(0.7) : Theme.Palette.hairlineBright,
+                    focused ? Theme.Palette.brand : Theme.Palette.hairlineBright,
                     lineWidth: 1
                 )
             )

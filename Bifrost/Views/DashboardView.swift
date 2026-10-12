@@ -6,36 +6,24 @@ struct DashboardView: View {
 
     @State private var showingNewProfile = false
 
-    private let columns = [
-        GridItem(.adaptive(minimum: 330, maximum: 460), spacing: 16)
-    ]
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
-                header
-                    .appearLift(0)
+        VStack(spacing: 0) {
+            header
+            HairlineRule()
 
-                if controller.profiles.isEmpty {
-                    emptyState
-                        .appearLift(0.04)
-                } else {
-                    GlassEffectContainer(spacing: 16) {
-                        LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                            ForEach(controller.profiles) { profile in
-                                VPNCard(profile: profile)
-                            }
-                        }
+            ScrollView {
+                Group {
+                    if controller.profiles.isEmpty {
+                        emptyState
+                    } else {
+                        profileList
                     }
-                    .appearLift(0.04)
                 }
+                .padding(Theme.Metrics.gutter)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .padding(.horizontal, 38)
-            .padding(.top, 34)
-            .padding(.bottom, 44)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .scrollContentBackground(.hidden)
         }
-        .scrollContentBackground(.hidden)
         .navigationTitle("Dashboard")
         .sheet(isPresented: $showingNewProfile) {
             ProfileEditorView()
@@ -46,107 +34,91 @@ struct DashboardView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 24) {
-            VStack(alignment: .leading, spacing: 2) {
-                Image("BifrostFullLogo")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 354, height: 99)
-                    .clipped()
-                    .accessibilityHidden(true)
+        HStack(spacing: 10) {
+            BrandLockup()
 
-                Text("Manage and connect to your private networks.")
-                    .font(.system(size: 12.5, weight: .regular))
-                    .foregroundStyle(Theme.Palette.textSecondary)
-                    .padding(.leading, 25)
+            Rectangle()
+                .fill(Theme.Palette.hairlineBright)
+                .frame(width: 1, height: 16)
+
+            Text("Profiles")
+                .font(.viewTitle)
+                .foregroundStyle(Theme.Palette.textPrimary)
+
+            if !controller.profiles.isEmpty {
+                Text("\(controller.profiles.count)")
+                    .font(.caption12)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.Palette.textTertiary)
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Bifrost. Manage and connect to your private networks.")
 
-            Spacer(minLength: 24)
+            Spacer(minLength: 16)
 
-            HStack(spacing: 18) {
-                if !controller.disconnectableProfiles.isEmpty {
-                    Button("Disconnect all") { controller.disconnectAll() }
-                        .buttonStyle(.quiet)
-                }
-
-                HStack(spacing: 16) {
-                    Button {
-                        showingNewProfile = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .medium))
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.Palette.textPrimary)
-                    .keyboardShortcut("n", modifiers: .command)
-                    .help("Add a VPN profile")
-
-                    Button(action: openSettings) {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 17, weight: .medium))
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Theme.Palette.textPrimary)
-                    .keyboardShortcut(",", modifiers: .command)
-                    .help("Settings")
-                }
-                .padding(.horizontal, 13)
-                .padding(.vertical, 8)
-                .glassEffect(
-                    .regular
-                        .tint(Theme.Palette.brand.opacity(0.16))
-                        .interactive(),
-                    in: Capsule()
-                )
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Theme.Palette.brandBright.opacity(0.14), lineWidth: 1)
-                )
-            }
-            .animation(Theme.Motion.state, value: controller.disconnectableProfiles.count)
-        }
-    }
-
-    // MARK: - Empty state
-
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            IconBadge(
-                symbol: "shield.slash",
-                tint: Theme.Palette.brand,
-                highlight: Theme.Palette.brandBright,
-                size: 58
-            )
-
-            VStack(spacing: 6) {
-                Text("No VPN profiles yet")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.textPrimary)
-
-                Text("Create one from scratch, or import an existing OpenVPN, OpenConnect or OpenFortiVPN configuration.")
-                    .font(.body13)
-                    .foregroundStyle(Theme.Palette.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 380)
+            if !controller.disconnectableProfiles.isEmpty {
+                Button("Disconnect all") { controller.disconnectAll() }
+                    .buttonStyle(.quietCompact)
             }
 
             Button {
                 showingNewProfile = true
             } label: {
-                Label("Add VPN", systemImage: "plus")
+                Label("Add profile", systemImage: "plus")
             }
-            .buttonStyle(.accent(Theme.Palette.brand))
-            .padding(.top, 2)
+            .buttonStyle(.accentCompact)
+            .keyboardShortcut("n", modifiers: .command)
+            .help("Add a VPN profile")
+
+            Button(action: openSettings) {
+                Label("Settings", systemImage: "gearshape")
+            }
+            .buttonStyle(.iconAction)
+            .keyboardShortcut(",", modifiers: .command)
+            .help("Settings")
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 62)
-        .glassCard(interactive: false)
+        // Clears the window controls, which sit over the hidden title bar.
+        .padding(.leading, 78)
+        .padding(.trailing, Theme.Metrics.gutter)
+        .frame(height: Theme.Metrics.headerHeight)
+        .animation(Theme.Motion.state, value: controller.disconnectableProfiles.count)
     }
 
+    // MARK: - Profiles
+
+    private var profileList: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(controller.profiles.enumerated()), id: \.element.id) { index, profile in
+                if index > 0 { HairlineRule() }
+                VPNProfileRow(profile: profile)
+            }
+        }
+        .mattePanel()
+    }
+
+    // MARK: - Empty state
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("No VPN profiles yet")
+                    .font(.panelTitle)
+                    .foregroundStyle(Theme.Palette.textPrimary)
+
+                Text("Create one from scratch, or import an existing OpenVPN, OpenConnect or OpenFortiVPN configuration.")
+                    .font(.caption12)
+                    .foregroundStyle(Theme.Palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: 420, alignment: .leading)
+
+            Button {
+                showingNewProfile = true
+            } label: {
+                Label("Add profile", systemImage: "plus")
+            }
+            .buttonStyle(.accent)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .mattePanel()
+    }
 }
