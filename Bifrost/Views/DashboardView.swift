@@ -8,6 +8,7 @@ struct DashboardView: View {
     @State private var showingNewProfile = false
     @State private var promptingForService = false
     @State private var inventory: EngineInventory?
+    @AppStorage("profileLayout") private var layout = ProfileLayout.list
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,6 +31,9 @@ struct DashboardView: View {
                 ProfileEditorView()
                     .environment(controller)
             }
+        }
+        .background(alignment: .bottom) {
+            ConnectionWaves(profiles: controller.connectedProfiles)
         }
         .navigationTitle("Dashboard")
         .alert("Enable VPN connections first", isPresented: $promptingForService) {
@@ -93,6 +97,10 @@ struct DashboardView: View {
 
             Spacer(minLength: 16)
 
+            if !controller.profiles.isEmpty {
+                layoutPicker
+            }
+
             if !controller.disconnectableProfiles.isEmpty {
                 Button("Disconnect all") { controller.disconnectAll() }
                     .buttonStyle(.quietCompact)
@@ -119,14 +127,45 @@ struct DashboardView: View {
 
     // MARK: - Profiles
 
-    private var profileList: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(controller.profiles.enumerated()), id: \.element.id) { index, profile in
-                if index > 0 { HairlineRule() }
-                VPNProfileRow(profile: profile)
+    private var layoutPicker: some View {
+        HStack(spacing: 2) {
+            ForEach(ProfileLayout.allCases, id: \.self) { option in
+                Button {
+                    withAnimation(Theme.Motion.state) { layout = option }
+                } label: {
+                    Label(option.title, systemImage: option.symbol)
+                }
+                .buttonStyle(.iconAction)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+                        .fill(layout == option ? Theme.Palette.surfaceActive : .clear)
+                )
+                .help("\(option.title) view")
             }
         }
-        .mattePanel()
+    }
+
+    @ViewBuilder
+    private var profileList: some View {
+        switch layout {
+        case .list:
+            VStack(spacing: 0) {
+                ForEach(Array(controller.profiles.enumerated()), id: \.element.id) { index, profile in
+                    if index > 0 { HairlineRule() }
+                    VPNProfileRow(profile: profile)
+                }
+            }
+            .mattePanel()
+        case .grid:
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 232, maximum: 320), spacing: 12, alignment: .top)],
+                spacing: 12
+            ) {
+                ForEach(controller.profiles) { profile in
+                    VPNProfileRow(profile: profile, layout: .grid)
+                }
+            }
+        }
     }
 
     // MARK: - Getting started

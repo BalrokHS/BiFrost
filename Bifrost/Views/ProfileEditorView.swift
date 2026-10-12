@@ -311,7 +311,9 @@ struct ProfileEditorView: View {
                 }
             }
 
-            SettingsNote("Passwords can be saved in macOS Keychain when you connect. OTP values are never saved.")
+            SettingsNote(draft.authentication == .passwordAndOTP && draft.provider == .openFortiVPN
+                         ? "Passwords can be saved in macOS Keychain. Bifrost connects first and asks for the code when the server sends one. Codes are never saved."
+                         : "Passwords can be saved in macOS Keychain when you connect. OTP values are never saved.")
 
             if let profile = existingProfile, profile.authentication != .saml {
                 HairlineRule()
@@ -378,7 +380,65 @@ struct ProfileEditorView: View {
 
     private var appearanceCard: some View {
         SettingsCard("Appearance", dense: true, fillsHeight: !isEditing) {
-            SettingsRow("Accent", detail: "Colours this profile's icon while it is connected.") {
+            SettingsRow(
+                "Icon",
+                detail: "Shown on the profile row. Without a picture, Bifrost draws an avatar from the profile name."
+            ) {
+                HStack(spacing: 12) {
+                    ProfileAvatar(
+                        name: draft.name,
+                        icon: draft.icon,
+                        image: draft.iconImage,
+                        tint: draft.accent.tint,
+                        size: 48
+                    )
+                    ChipPicker(
+                        options: IconKind.allCases,
+                        selection: iconKind,
+                        tint: Theme.Palette.brand,
+                        title: \.rawValue,
+                        symbol: nil
+                    )
+                }
+            }
+
+            switch draft.icon {
+            case .avatar:
+                EmptyView()
+            case .symbol(let selected):
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(32), spacing: 6), count: 7), alignment: .leading, spacing: 6) {
+                    ForEach(ProfileIcon.symbols, id: \.self) { name in
+                        SymbolChoice(name: name, isSelected: name == selected) {
+                            withAnimation(Theme.Motion.state) { draft.icon = .symbol(name) }
+                        }
+                    }
+                }
+            case .image:
+                HStack(spacing: 8) {
+                    Button(draft.iconImage == nil ? "Choose image" : "Replace image") {
+                        chooseIcon()
+                    }
+                    .buttonStyle(.quietCompact)
+
+                    if draft.iconImage != nil {
+                        Button("Remove image") {
+                            withAnimation(Theme.Motion.state) {
+                                draft.iconImage = nil
+                                draft.icon = .avatar
+                            }
+                        }
+                        .buttonStyle(.quietCompact)
+                    }
+
+                    Text("PNG, JPEG or HEIC. It is cropped to a square.")
+                        .font(.caption11)
+                        .foregroundStyle(Theme.Palette.textTertiary)
+                }
+            }
+
+            HairlineRule()
+
+            SettingsRow("Accent", detail: "Colours this profile's icon and its background wave while it is connected.") {
                 HStack(spacing: 8) {
                     ForEach(ProfileAccent.allCases, id: \.self) { accent in
                         AccentSwatch(accent: accent, isSelected: draft.accent == accent) {
@@ -387,6 +447,55 @@ struct ProfileEditorView: View {
                     }
                 }
             }
+        }
+    }
+
+    private enum IconKind: String, CaseIterable {
+        case avatar = "Avatar"
+        case symbol = "Symbol"
+        case image = "Picture"
+    }
+
+    private var iconKind: Binding<IconKind> {
+        Binding {
+            switch draft.icon {
+            case .avatar: .avatar
+            case .symbol: .symbol
+            case .image: .image
+            }
+        } set: { kind in
+            switch kind {
+            case .avatar: draft.icon = .avatar
+            case .symbol:
+                if case .symbol = draft.icon { return }
+                draft.icon = .symbol(ProfileIcon.symbols[0])
+            case .image: draft.icon = .image
+            }
+        }
+    }
+
+    /// A plain open panel: a second `.fileImporter` in the same view tree never presents.
+    private func chooseIcon() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.message = "Choose a picture for this profile"
+        panel.prompt = "Choose"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        guard let image = NSImage(contentsOf: url), image.isValid, image.size.width > 0 else {
+            validationMessage = "That file is not an image Bifrost can read. Choose a PNG, JPEG or HEIC file."
+            return
+        }
+        // Normalise now so the preview matches what will be stored.
+        guard let data = ProfileIconStore.normalizedPNG(from: image), let square = NSImage(data: data) else {
+            validationMessage = "That image could not be used. Choose a different one."
+            return
+        }
+        withAnimation(Theme.Motion.state) {
+            draft.iconImage = square
+            draft.icon = .image
         }
     }
 
@@ -475,9 +584,13 @@ struct ProfileEditorView: View {
             ConfigurationImporter.removeManagedOpenVPNConfiguration(at: temporaryConfigurationPath)
             let enteredName = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
             let selectedAccent = draft.accent
+            let selectedIcon = draft.icon
+            let selectedIconImage = draft.iconImage
             draft = ProfileDraft(profile: imported)
             if !enteredName.isEmpty { draft.name = enteredName }
             draft.accent = selectedAccent
+            draft.icon = selectedIcon
+            draft.iconImage = selectedIconImage
             temporaryConfigurationPath = imported.configurationPath
         } catch {
             validationMessage = error.localizedDescription
@@ -560,6 +673,16 @@ struct ProfileEditorView: View {
         }
 
         let profile = draft.makeProfile(id: existingProfile?.id ?? UUID())
+        if profile.icon == .image, let image = draft.iconImage {
+            do {
+                try ProfileIconStore.save(image, for: profile.id)
+            } catch {
+                validationMessage = "The icon could not be saved. Choose a different image or use an avatar."
+                return
+            }
+        } else {
+            ProfileIconStore.remove(for: profile.id)
+        }
         if existingProfile == nil {
             controller.add(profile)
         } else {
@@ -654,6 +777,31 @@ private struct AccentSwatch: View {
     }
 }
 
+private struct SymbolChoice: View {
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
+        Button(action: action) {
+            Image(systemName: name)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isSelected ? Theme.Palette.textPrimary : Theme.Palette.textSecondary)
+                .frame(width: 32, height: 32)
+                .background(shape.fill(isSelected ? Theme.Palette.surfaceActive : (hovering ? Theme.Palette.surfaceHover : Theme.Palette.surface)))
+                .overlay(shape.strokeBorder(isSelected ? Theme.Palette.brand : Theme.Palette.hairline, lineWidth: 1))
+                .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(Theme.Motion.hover, value: hovering)
+        .accessibilityLabel(name)
+    }
+}
+
 private enum SavedPasswordState {
     case checking
     case available
@@ -671,9 +819,14 @@ private struct ProfileDraft {
     var dnsServers = ""
     var dnsDomains = ""
     var accent = ProfileAccent.blue
+    var icon = ProfileIcon.avatar
+    /// The picture chosen in the editor, written to disk only when the profile is saved.
+    var iconImage: NSImage?
 
     init(profile: VPNProfile?) {
         guard let profile else { return }
+        icon = profile.icon
+        if profile.icon == .image { iconImage = ProfileIconStore.load(profile.id) }
         name = profile.name
         server = profile.server
         provider = profile.provider
@@ -698,7 +851,9 @@ private struct ProfileDraft {
             serverCertificatePin: optional(serverCertificatePin),
             dnsDomains: list(dnsDomains),
             dnsServers: list(dnsServers),
-            accent: accent
+            accent: accent,
+            // A picture icon with no picture falls back to the avatar.
+            icon: icon == .image && iconImage == nil ? .avatar : icon
         )
     }
 

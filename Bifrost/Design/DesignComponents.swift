@@ -97,19 +97,65 @@ struct StatusLabel: View {
 
 // MARK: - Glyphs
 
-/// A provider glyph in a flat square. Grey until `tint` is given.
-struct IconBadge: View {
-    let symbol: String
+
+/// A profile's icon: an imported picture, a chosen symbol, or an avatar of
+/// initials drawn from its name. Symbols and initials sit on a soft tint of the
+/// profile's accent; a dot in the corner marks a connected profile.
+struct ProfileAvatar: View {
+    let name: String
+    let icon: ProfileIcon
+    var image: NSImage?
     var tint: Color = Theme.Palette.textSecondary
-    var size: CGFloat = 28
+    var connected = false
+    var size: CGFloat = 40
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: Theme.Radius.control, style: .continuous)
-        Image(systemName: symbol)
-            .font(.system(size: size * 0.46, weight: .medium))
-            .foregroundStyle(tint)
-            .frame(width: size, height: size)
-            .background(shape.fill(Theme.Palette.surfaceRaised))
+        let shape = Circle()
+        Group {
+            if icon == .image, let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(shape)
+                    .overlay(shape.strokeBorder(Theme.Palette.hairlineBright, lineWidth: 1))
+            } else if case .symbol(let name) = icon {
+                Image(systemName: name)
+                    .font(.system(size: size * 0.44, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: size, height: size)
+                    .background(shape.fill(tint.opacity(0.16)))
+            } else {
+                Text(Self.initials(for: name))
+                    .font(.system(size: size * 0.38, weight: .bold, design: .rounded))
+                    .foregroundStyle(tint)
+                    .frame(width: size, height: size)
+                    .background(shape.fill(tint.opacity(0.16)))
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if connected {
+                Circle()
+                    .fill(ConnectionState.connected.tone)
+                    .frame(width: size * 0.24, height: size * 0.24)
+                    .overlay(Circle().strokeBorder(Theme.Palette.canvas, lineWidth: 2))
+                    .offset(x: -size * 0.03, y: -size * 0.03)
+            }
+        }
+        .animation(Theme.Motion.state, value: connected)
+        .accessibilityHidden(true)
+    }
+
+    /// First letters of the first two words, or the first two letters of a single word.
+    static func initials(for name: String) -> String {
+        let words = name.split { !$0.isLetter && !$0.isNumber }
+        let letters: [Character]
+        if words.count >= 2 {
+            letters = words.prefix(2).compactMap(\.first)
+        } else {
+            letters = words.first.map { Array($0.prefix(2)) } ?? []
+        }
+        return letters.isEmpty ? "?" : String(letters).uppercased()
     }
 }
 
@@ -424,5 +470,77 @@ extension View {
                 )
             )
             .animation(Theme.Motion.hover, value: focused)
+    }
+}
+
+// MARK: - Connection waves
+
+/// Slow colour waves along the bottom of the window, one layer per open
+/// connection. Layers differ in height, speed and phase (derived from the
+/// profile id, so they stay put between launches) and fade in and out as
+/// connections start and stop. Idle, nothing is drawn.
+struct ConnectionWaves: View {
+    let profiles: [VPNProfile]
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            ForEach(profiles) { profile in
+                WaveLayer(seed: profile.id, tint: profile.accent.tint, animated: !reduceMotion)
+                    .transition(.opacity)
+            }
+        }
+        .animation(Theme.Motion.state.speed(0.35), value: profiles.map(\.id))
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct WaveLayer: View {
+    let seed: UUID
+    let tint: Color
+    let animated: Bool
+
+    var body: some View {
+        let bytes = seed.uuid
+        // Stable per-profile variation in 0...1.
+        let a = Double(bytes.0) / 255
+        let b = Double(bytes.1) / 255
+        let c = Double(bytes.2) / 255
+
+        TimelineView(.animation(minimumInterval: nil, paused: !animated)) { timeline in
+            let t = animated ? timeline.date.timeIntervalSinceReferenceDate : 0
+            Canvas { context, size in
+                let baseline = size.height * (0.80 - 0.10 * a)
+                let amplitude = size.height * (0.035 + 0.035 * b)
+                let wavelength = size.width * (0.55 + 0.6 * c)
+                let phase = t * (0.18 + 0.14 * a) * (b > 0.5 ? 1 : -1) + c * 6.28
+
+                var path = Path()
+                path.move(to: CGPoint(x: 0, y: size.height))
+                var x: CGFloat = 0
+                while x <= size.width + 8 {
+                    let angle = Double(x / wavelength) * 2 * .pi + phase
+                    // A second, slower harmonic keeps the crest from looking mechanical.
+                    let y = baseline
+                        + amplitude * sin(angle)
+                        + amplitude * 0.45 * sin(angle * 0.5 + phase * 0.6)
+                    path.addLine(to: CGPoint(x: x, y: y))
+                    x += 8
+                }
+                path.addLine(to: CGPoint(x: size.width, y: size.height))
+                path.closeSubpath()
+
+                context.fill(
+                    path,
+                    with: .linearGradient(
+                        Gradient(colors: [tint.opacity(0.16), tint.opacity(0)]),
+                        startPoint: CGPoint(x: 0, y: baseline - amplitude),
+                        endPoint: CGPoint(x: 0, y: size.height)
+                    )
+                )
+            }
+        }
     }
 }

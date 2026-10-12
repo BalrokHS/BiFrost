@@ -12,6 +12,7 @@ struct VPNProfile: Identifiable, Hashable, Codable, Sendable {
     var dnsDomains: [String]
     var dnsServers: [String]
     var accent: ProfileAccent
+    var icon: ProfileIcon
 
     init(
         id: UUID = UUID(),
@@ -24,7 +25,8 @@ struct VPNProfile: Identifiable, Hashable, Codable, Sendable {
         serverCertificatePin: String? = nil,
         dnsDomains: [String] = [],
         dnsServers: [String] = [],
-        accent: ProfileAccent = .blue
+        accent: ProfileAccent = .blue,
+        icon: ProfileIcon = .avatar
     ) {
         self.id = id
         self.name = name
@@ -37,11 +39,12 @@ struct VPNProfile: Identifiable, Hashable, Codable, Sendable {
         self.dnsDomains = dnsDomains
         self.dnsServers = dnsServers
         self.accent = accent
+        self.icon = icon
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, server, provider, authentication, username, configurationPath
-        case serverCertificatePin, dnsDomains, dnsServers, accent
+        case serverCertificatePin, dnsDomains, dnsServers, accent, icon
     }
 
     init(from decoder: Decoder) throws {
@@ -57,6 +60,7 @@ struct VPNProfile: Identifiable, Hashable, Codable, Sendable {
         dnsDomains = try container.decodeIfPresent([String].self, forKey: .dnsDomains) ?? []
         dnsServers = try container.decodeIfPresent([String].self, forKey: .dnsServers) ?? []
         accent = try container.decodeIfPresent(ProfileAccent.self, forKey: .accent) ?? .blue
+        icon = try container.decodeIfPresent(ProfileIcon.self, forKey: .icon) ?? .avatar
     }
 }
 
@@ -118,6 +122,45 @@ enum ProfileAccent: String, CaseIterable, Codable, Sendable {
         case .teal: .teal
         case .orange: .orange
         case .pink: .pink
+        }
+    }
+}
+
+/// What identifies a profile in the list. With no choice made, Bifrost draws an
+/// avatar from the profile name. An imported picture lives in `ProfileIconStore`.
+enum ProfileIcon: Hashable, Codable, Sendable {
+    case avatar
+    case symbol(String)
+    case image
+
+    /// The symbols offered in the editor. A stored name outside this list is
+    /// ignored, so a hand-edited file cannot name an arbitrary symbol.
+    static let symbols = [
+        "lock.shield", "shield", "network", "globe", "building.2", "briefcase", "house",
+        "server.rack", "cloud", "key", "bolt", "laptopcomputer", "person.2",
+        "antenna.radiowaves.left.and.right"
+    ]
+
+    private static let symbolPrefix = "symbol:"
+
+    init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        if value == "image" {
+            self = .image
+        } else if value.hasPrefix(Self.symbolPrefix),
+                  Self.symbols.contains(String(value.dropFirst(Self.symbolPrefix.count))) {
+            self = .symbol(String(value.dropFirst(Self.symbolPrefix.count)))
+        } else {
+            self = .avatar
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .avatar: try container.encode("avatar")
+        case .image: try container.encode("image")
+        case .symbol(let name): try container.encode(Self.symbolPrefix + name)
         }
     }
 }
