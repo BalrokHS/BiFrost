@@ -1,55 +1,45 @@
 import SwiftUI
 
-/// Shared visual language for the macOS app. The palette is intentionally
-/// quiet; hierarchy comes from translucency, fine rims and small temperature
-/// shifts rather than bright blocks of colour.
+/// Shared visual language for the macOS app: one flat near-black canvas,
+/// hairline dividers and small radii. Grey by default; the brand colour marks
+/// the primary action and the current selection, status colour a single dot.
 enum Theme {
     enum Palette {
-        static let canvasDeep = Color(hex: 0x05070A)
-        static let canvas = Color(hex: 0x090C12)
-        static let sidebar = Color(hex: 0x080A0F)
+        static let canvasDeep = Color(hex: 0x08090B)
+        static let canvas = Color(hex: 0x0E0F12)
+        static let sidebar = Color(hex: 0x0B0C0F)
 
-        static let surface = Color.white.opacity(0.045)
-        static let surfaceRaised = Color.white.opacity(0.072)
-        static let surfaceHover = Color.white.opacity(0.092)
-        static let surfaceActive = Color.white.opacity(0.13)
-        static let well = Color.black.opacity(0.28)
+        static let surface = Color.white.opacity(0.03)
+        static let surfaceRaised = Color.white.opacity(0.05)
+        static let surfaceHover = Color.white.opacity(0.06)
+        static let surfaceActive = Color.white.opacity(0.09)
 
-        static let hairline = Color.white.opacity(0.075)
-        static let hairlineBright = Color.white.opacity(0.13)
-        static let rim = Color.white.opacity(0.16)
-
-        static let border = hairline
-        static let borderStrong = hairlineBright
+        static let hairline = Color.white.opacity(0.07)
+        static let hairlineBright = Color.white.opacity(0.12)
 
         static let textPrimary = Color(hex: 0xF4F6FA)
         static let textSecondary = Color(hex: 0xA5ABB7)
         static let textTertiary = Color(hex: 0x69717F)
 
         static let brand = Color(hex: 0x596BFF)
-        static let brandBright = Color(hex: 0x00D5F2)
         static let brandHover = Color(hex: 0x7280FF)
         static let danger = Color(hex: 0xF05D68)
     }
 
     enum Radius {
-        static let control: CGFloat = 8
-        static let row: CGFloat = 10
-        static let panel: CGFloat = 12
-        static let card: CGFloat = 16
-        static let sheet: CGFloat = 18
+        static let control: CGFloat = 6
+        static let panel: CGFloat = 8
     }
 
     enum Metrics {
-        static let headerHeight: CGFloat = 52
-        static let gutter: CGFloat = 24
+        static let headerHeight: CGFloat = 44
+        static let gutter: CGFloat = 20
     }
 
     enum Motion {
-        static let hover = Animation.easeOut(duration: 0.14)
+        static let hover = Animation.easeOut(duration: 0.1)
         static let press = Animation.easeOut(duration: 0.09)
-        static let state = Animation.spring(response: 0.34, dampingFraction: 0.86)
-        static let ambient = Animation.easeInOut(duration: 0.7)
+        static let state = Animation.spring(response: 0.3, dampingFraction: 1)
     }
 }
 
@@ -83,12 +73,6 @@ extension ConnectionState {
         }
     }
 
-    var animatesIndicator: Bool {
-        switch self {
-        case .connected, .connecting, .disconnecting, .waitingForAuthentication: true
-        case .degraded, .failed, .disconnected: false
-        }
-    }
 }
 
 extension ProfileAccent {
@@ -101,36 +85,13 @@ extension ProfileAccent {
         case .pink: Color(hex: 0xEE88BE)
         }
     }
-
-    var highlight: Color { tint.opacity(0.95) }
-
-    var gradient: LinearGradient {
-        LinearGradient(
-            colors: [highlight, tint.opacity(0.72)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
 }
 
 extension Font {
-    static let heroTitle = Font.system(size: 30, weight: .semibold, design: .rounded)
     static let panelTitle = Font.system(size: 13, weight: .semibold)
-    static let cardTitle = Font.system(size: 15, weight: .semibold)
+    static let viewTitle = Font.system(size: 15, weight: .semibold)
     static let rowTitle = Font.system(size: 12.5, weight: .medium)
     static let body13 = Font.system(size: 13, weight: .regular)
     static let caption12 = Font.system(size: 12, weight: .regular)
     static let caption11 = Font.system(size: 11, weight: .regular)
-    static let eyebrow = Font.system(size: 10, weight: .semibold)
-    static let readout = Font.system(size: 12, weight: .regular, design: .monospaced)
-    static let readoutSmall = Font.system(size: 10.5, weight: .regular, design: .monospaced)
-
-    static let uiTitle = panelTitle
-    static let uiSectionLabel = caption12
-    static let uiLabel = rowTitle
-    static let uiBody = body13
-    static let uiSecondary = caption12
-    static let uiMeta = caption11
-    static let uiMono = readout
-    static let uiMonoSmall = readoutSmall
 }
